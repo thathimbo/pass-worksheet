@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1915">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pass">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>The Pass worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --ok:#2f6b3a; --warn:#8a5a12; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:3; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:10px 16px; background:#1c1915; color:#fbf8f2; font-family: ui-sans-serif, system-ui, sans-serif; font-size:13px; }
+  header.bar .left { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  header.bar .status { opacity:.75; font-size:12px; }
+  header.bar .actions { display:flex; flex-wrap:wrap; gap:8px; }
+  header.bar button, .row button, .settings button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:6px 10px; cursor:pointer; border-radius:4px; }
+  .row button { color:var(--ink); border-color:#b3a898; font: 12px/1 ui-sans-serif, system-ui, sans-serif; }
+  .settings { display:none; background:#2a2520; color:#fbf8f2; padding:14px 16px; font-family: ui-sans-serif, system-ui, sans-serif; font-size:13px; border-bottom:1px solid #3d3630; }
+  .settings.open { display:block; }
+  .settings label { display:block; margin:8px 0 4px; opacity:.85; }
+  .settings input { width:100%; max-width:720px; padding:8px; border:1px solid #8a8174; background:#1c1915; color:#fbf8f2; border-radius:4px; }
+  .settings .hint { opacity:.7; margin-top:8px; max-width:70ch; }
+  .sheet { max-width: 1040px; margin: 24px auto 100px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 36px 28px 8px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 14px; max-width: 62ch; }
+  .row { display:grid; grid-template-columns: 1fr minmax(240px, 300px); border-bottom: 1px solid var(--rule); min-height: 140px; }
+  .body { padding: 18px 22px 18px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:#6d6458; margin:0 0 8px; font-weight:600; }
+  .body p { margin: 0 0 8px; }
+  .sug { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; color:#3f3a33; }
+  .margin { background: var(--margin); padding: 12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+  .marks { display:flex; flex-wrap:wrap; gap:6px; }
+  .marks button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .send-row { align-self:flex-start; }
+  .send-row.sent { border-color: var(--ok); color: var(--ok); }
+  textarea { flex:1; min-height: 78px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .foot { padding: 16px 36px 28px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; color:#6d6458; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1c1915; color:#fbf8f2; padding:10px 16px; border-radius:8px; font:13px ui-sans-serif, system-ui, sans-serif; opacity:0; pointer-events:none; transition:opacity .2s; z-index:5; }
+  .toast.show { opacity:1; }
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; }
+    .body { border-right:none; border-bottom: 1px dashed var(--rule); }
+    .intro { padding: 24px 18px 8px; }
+  }
+  @media print {
+    header.bar, .settings, .toast, .send-row { display:none !important; }
+    body { background:white; }
+    .sheet { box-shadow:none; margin:0; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="left">
+    <strong>The Pass worksheet</strong>
+    <span class="status" id="status">Saving locally…</span>
+  </div>
+  <div class="actions">
+    <button type="button" id="install" hidden>Install</button>
+    <button type="button" id="settingsBtn">Send setup</button>
+    <button type="button" id="done">I'm done</button>
+    <button type="button" id="download">Download</button>
+  </div>
+</header>
+<section class="settings" id="settings">
+  <p>Paste the webhook URL and sender key from the Pass worksheet marks routine (right-click the routine → copy fields). After that, each yea / nay / change and each note pause will send itself. Marks also stay on this device.</p>
+  <label for="hookUrl">Webhook URL</label>
+  <input id="hookUrl" type="url" autocomplete="off" placeholder="https://…">
+  <label for="hookKey">Sender key</label>
+  <input id="hookKey" type="password" autocomplete="off" placeholder="paste key">
+  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+    <button type="button" id="saveHook">Save</button>
+    <button type="button" id="pickFolder">Keep a file backup on this computer</button>
+  </div>
+  <p class="hint">If you skip the webhook, use Download or I'm done, and paste the file into chat. The file backup writes marks.json whenever you change a row.</p>
+</section>
+<article class="sheet">
+  <div class="intro">
+    <h1>The Pass</h1>
+    <p>A kitchen island working-memory loop. Projector on the island, a durable card you can hold, a receipt slip for the next small action, a scanner, and Home Assistant for the pings. Nothing here is decided. Write in the margin.</p>
+    <p>Marks save on this device as you go. With Send setup filled in, each mark also leaves the device so half a sheet cannot vanish with a closed tab.</p>
+  </div>
+  <div id="rows"></div>
+  <div class="foot">Offline-capable. Install it if your browser offers that. Your marks live in IndexedDB on this device, and optionally in a folder you pick and in the webhook.</div>
+</article>
+<div class="toast" id="toast"></div>
+<script>
+const blocks = [
+  ["start", "Where this starts",
+    "The brief says: make the old Asana-backed loop run end to end, prove it with real scans, and only then replace Asana. You later said treat this as net new.",
+    "Suggestion: new build. Keep the hardware you already have. Do not revive the old Asana loop as the plan."],
+  ["questions", "The two questions",
+    "The system exists to answer, without you reconstructing context: what am I doing right now, and what is the smallest concrete thing I should do next.",
+    "Suggestion: yea. Those two questions are the whole product."],
+  ["loop", "The physical loop",
+    "Pick a card, scan it, get one chunk slip, do it, scan the slip to put it down, then say how it went. The projector helps. It does not replace the paper.",
+    "Suggestion: yea. Paper is the thing someone else can find."],
+  ["objects", "Two kinds of paper",
+    "A durable card names the task and stays on the board. A receipt slip is one small action and gets thrown away. They are not the same object.",
+    "Suggestion: yea. Label printer for cards, receipt printer for slips."],
+  ["one", "Only one thing in progress",
+    "Only one task and one chunk are active. The island never asks you to pick among several next actions.",
+    "Suggestion: yea."],
+  ["scan", "Scanning is the main move",
+    "Scan a card to start or resume that exact task and print the right slip. Scan the slip to put the chunk down. The scanner must not depend on the title printed on the paper.",
+    "Suggestion: yea. Slips and cards both carry a QR code."],
+  ["scan-means", "What a slip scan means",
+    "Scanning the chunk slip means put this down and ask how it went. It does not by itself mark the chunk done.",
+    "Suggestion: yea, if the buttons exist. Nay if you want the scan itself to mean done."],
+  ["buttons", "Green, yellow, red",
+    "Green: chunk done, print the next one, stay on this task. Yellow: chunk done, stop this task, go pick another card. Red: chunk not done. Then either more time on the same chunk, or put it on hold and keep the re-entry note. These are not a grade of you.",
+    "Suggestion: keep all three. Red is the only one with a follow-up, because it is the difference between need longer and need to switch."],
+  ["reentry", "Coming back",
+    "A stopped or interrupted chunk keeps its re-entry point. Scanning the card again reprints that same chunk. It does not skip ahead. Switching cards parks the previous one without a guilt dialog.",
+    "Suggestion: yea."],
+  ["list", "One list",
+    "One canonical task list. Ideas and real obligations land on it. You do not keep a separate inbox, project list, backlog, and daily list by hand. Views are filters of the same list.",
+    "Suggestion: yea."],
+  ["capture", "Capture asks for a title only",
+    "A new idea becomes a backlog task from a title alone. No project, priority, due date, energy, or plan unless you add it.",
+    "Suggestion: yea."],
+  ["no-auto", "Nothing becomes a task by itself",
+    "Email and notifications must not create a task just because a message looks actionable. A machine can suggest a candidate. It enters the list only when you accept it.",
+    "Suggestion: yea. This is the failure the brief is trying not to repeat."],
+  ["override", "You can overrule the sorter",
+    "The backend may rank things. A pin, a hand rank, a defer date, or a delegation wins until you clear it. The screen explains a suggestion in one line, not a score.",
+    "Suggestion: yea."],
+  ["prep", "Morning prep",
+    "When the kitchen wakes up, not on a clock, it offers a short menu: one anchor task, up to two supporting tasks, and a few small optional ones. Scanning a card during prep selects it for today. It does not start the work.",
+    "Suggestion: yea on wake-anchored, not a morning alarm. The one-plus-two cap is a suggestion, not a rule, until you say so."],
+  ["modes", "What the projector shows",
+    "Four modes in the brief: triage, prep, service, close. Daytime default is service, not the whole backlog. Idle screen says scan a card.",
+    "Suggestion: service and prep first. Triage and close can wait until the scan-and-print loop is real."],
+  ["store", "Where the list lives",
+    "The brief's target is one Nextcloud table. Asana is the old store. Home Assistant, paper, and a chat must not be the only copy.",
+    "Suggestion: do not decide the database in v0. v0 can be a local list that prints and scans."],
+  ["ha", "Home Assistant's job",
+    "Notifications already come through Home Assistant. It also gets the scanner, the colored buttons, projector power, and the call to print. It should not be the task list.",
+    "Suggestion: yea. Home Assistant moves events. It does not own the tasks."],
+  ["hardware", "Hardware already named",
+    "v0 is projector, receipt printer, label printer, scanner. Optional later: a small button panel. You said you already have the first four.",
+    "Suggestion: skip the button panel until slips and scans work."],
+  ["codes", "Old printed codes",
+    "The brief says already-printed Asana cards must keep working. New cards would get a fresh id.",
+    "Suggestion: nay, unless you still have a stack of those cards you care about. A new build can use new codes."],
+  ["delegate", "Handing work to someone",
+    "The system may suggest that someone else should do a task. It never messages them or assigns them unless you confirm.",
+    "Suggestion: yea. No automatic messages."],
+  ["out", "Explicitly out",
+    "Out of v0: a second inbox, several active tasks, auto-sending messages, scores and streaks, shamey overdue warnings, requiring a time estimate, a fixed plan that cannot change, e-ink labels, a flight-strip rack.",
+    "Suggestion: yea, leave those out of v0."],
+  ["success", "Done means",
+    "You can lose the thread, walk into the kitchen, scan the card for the thing you mean to do, and get the exact next action without rebuilding the plan from memory.",
+    "Suggestion: yea. That sentence is the test, not a feature list."]
+];
+
+const LS_MARKS = 'pass-pwa-marks-v1';
+const LS_HOOK = 'pass-pwa-hook-v1';
+const statusEl = document.getElementById('status');
+const toastEl = document.getElementById('toast');
+let fileHandle = null;
+let noteTimers = {};
+let deferredInstall = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+function loadMarks() {
+  try { return JSON.parse(localStorage.getItem(LS_MARKS) || '{}'); } catch { return {}; }
+}
+function saveMarksLocal(data) {
+  localStorage.setItem(LS_MARKS, JSON.stringify(data));
+}
+function loadHook() {
+  try { return JSON.parse(localStorage.getItem(LS_HOOK) || '{}'); } catch { return {}; }
+}
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('pass-worksheet', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('marks');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(data) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('marks', 'readwrite');
+    tx.objectStore('marks').put(data, 'current');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('marks', 'readonly');
+    const req = tx.objectStore('marks').get('current');
+    req.onsuccess = () => resolve(req.result || {});
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function collect() {
+  const data = {};
+  document.querySelectorAll('.row').forEach(row => {
+    const id = row.dataset.id;
+    const on = row.querySelector('.marks button.on');
+    data[id] = {
+      title: row.dataset.title,
+      mark: on ? on.dataset.mark : '',
+      note: row.querySelector('textarea').value,
+      sentAt: row.dataset.sentAt || ''
+    };
+  });
+  return data;
+}
+
+async function persistAll() {
+  const data = collect();
+  saveMarksLocal(data);
+  try { await idbPut(data); } catch {}
+  await writeFileBackup(data);
+  const marked = Object.values(data).filter(x => x.mark || (x.note || '').trim()).length;
+  statusEl.textContent = `${marked} of ${blocks.length} touched · saved on this device`;
+  return data;
+}
+
+async function writeFileBackup(data) {
+  if (!fileHandle) return;
+  try {
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify({ updatedAt: new Date().toISOString(), blocks: data }, null, 2));
+    await writable.close();
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+async function sendMark(id, { finished = false } = {}) {
+  const hook = loadHook();
+  const data = collect()[id] || {};
+  const payload = {
+    id,
+    title: data.title || id,
+    mark: data.mark || '',
+    note: (data.note || '').trim(),
+    finished: !!finished,
+    at: new Date().toISOString()
+  };
+  if (!hook.url || !hook.key) {
+    return { ok: false, reason: 'no-hook' };
+  }
+  try {
+    const res = await fetch(hook.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${hook.key}`
+      },
+      body: JSON.stringify(payload),
+      mode: 'cors',
+      keepalive: true
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return { ok: true };
+  } catch (e) {
+    // try without auth header shape variations
+    try {
+      const res2 = await fetch(hook.url + (hook.url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(hook.key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'cors',
+        keepalive: true
+      });
+      if (!res2.ok) throw new Error('HTTP ' + res2.status);
+      return { ok: true };
+    } catch (e2) {
+      return { ok: false, reason: String(e2.message || e2) };
+    }
+  }
+}
+
+function packText(data) {
+  return blocks.map(([id, title]) => {
+    const m = data[id] || {};
+    const mark = m.mark ? m.mark.toUpperCase() : 'unmarked';
+    const note = (m.note || '').trim();
+    return `${title}: ${mark}${note ? '\n  ' + note.replace(/\n/g, '\n  ') : ''}`;
+  }).join('\n\n');
+}
+
+function render(saved) {
+  const root = document.getElementById('rows');
+  root.innerHTML = '';
+  blocks.forEach(([id, title, body, sug]) => {
+    const prev = saved[id] || {};
+    const row = document.createElement('section');
+    row.className = 'row';
+    row.dataset.id = id;
+    row.dataset.title = title;
+    if (prev.sentAt) row.dataset.sentAt = prev.sentAt;
+    row.innerHTML = `
+      <div class="body">
+        <h2>${title}</h2>
+        <p>${body}</p>
+        <p class="sug">${sug}</p>
+      </div>
+      <div class="margin">
+        <div class="marks">
+          <button type="button" data-mark="yea">Yea</button>
+          <button type="button" data-mark="nay">Nay</button>
+          <button type="button" data-mark="change">Change</button>
+          <button type="button" class="send-row" data-send>Send</button>
+        </div>
+        <textarea placeholder="Margin note">${prev.note || ''}</textarea>
+      </div>`;
+    if (prev.mark) {
+      const b = row.querySelector(`.marks button[data-mark="${prev.mark}"]`);
+      if (b) b.classList.add('on');
+    }
+    if (prev.sentAt) row.querySelector('[data-send]').classList.add('sent');
+
+    row.querySelectorAll('.marks button[data-mark]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const already = btn.classList.contains('on');
+        row.querySelectorAll('.marks button[data-mark]').forEach(x => x.classList.remove('on'));
+        if (!already) btn.classList.add('on');
+        await persistAll();
+        const result = await sendMark(id);
+        if (result.ok) {
+          row.dataset.sentAt = new Date().toISOString();
+          row.querySelector('[data-send]').classList.add('sent');
+          await persistAll();
+          toast('Sent: ' + title);
+        } else if (result.reason === 'no-hook') {
+          toast('Saved here. Open Send setup to send live.');
+        } else {
+          toast('Saved here. Send failed: ' + result.reason);
+        }
+      });
+    });
+
+    const ta = row.querySelector('textarea');
+    ta.addEventListener('input', () => {
+      clearTimeout(noteTimers[id]);
+      noteTimers[id] = setTimeout(async () => {
+        await persistAll();
+        const result = await sendMark(id);
+        if (result.ok) {
+          row.dataset.sentAt = new Date().toISOString();
+          row.querySelector('[data-send]').classList.add('sent');
+          await persistAll();
+          toast('Note sent: ' + title);
+        }
+      }, 1200);
+    });
+
+    row.querySelector('[data-send]').addEventListener('click', async () => {
+      await persistAll();
+      const result = await sendMark(id);
+      if (result.ok) {
+        row.dataset.sentAt = new Date().toISOString();
+        row.querySelector('[data-send]').classList.add('sent');
+        await persistAll();
+        toast('Sent: ' + title);
+      } else if (result.reason === 'no-hook') {
+        const data = collect();
+        const m = data[id] || {};
+        const text = `${m.title || title}: ${(m.mark || 'unmarked').toUpperCase()}${(m.note||'').trim() ? '\n' + m.note.trim() : ''}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          toast('Copied. Paste into chat.');
+        } catch {
+          toast('Fill Send setup, or download when done.');
+        }
+      } else {
+        toast('Send failed: ' + result.reason);
+      }
+    });
+
+    root.appendChild(row);
+  });
+}
+
+(async function init() {
+  let saved = loadMarks();
+  try {
+    const fromIdb = await idbGet();
+    if (fromIdb && Object.keys(fromIdb).length) saved = fromIdb;
+  } catch {}
+  render(saved);
+  await persistAll();
+
+  const hook = loadHook();
+  if (hook.url) document.getElementById('hookUrl').value = hook.url;
+  if (hook.key) document.getElementById('hookKey').value = hook.key;
+  if (hook.url && hook.key) statusEl.textContent += ' · live send on';
+
+  if ('serviceWorker' in navigator) {
+    try { await navigator.serviceWorker.register('./sw.js'); } catch {}
+  }
+})();
+
+document.getElementById('settingsBtn').onclick = () => {
+  document.getElementById('settings').classList.toggle('open');
+};
+document.getElementById('saveHook').onclick = () => {
+  const url = document.getElementById('hookUrl').value.trim();
+  const key = document.getElementById('hookKey').value.trim();
+  localStorage.setItem(LS_HOOK, JSON.stringify({ url, key }));
+  toast(url && key ? 'Live send saved' : 'Cleared live send');
+  document.getElementById('settings').classList.remove('open');
+};
+document.getElementById('pickFolder').onclick = async () => {
+  if (!window.showSaveFilePicker) {
+    toast('This browser cannot pin a file. Use Download instead.');
+    return;
+  }
+  try {
+    fileHandle = await showSaveFilePicker({
+      suggestedName: 'pass-marks.json',
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    await persistAll();
+    toast('File backup linked');
+  } catch {}
+};
+document.getElementById('download').onclick = async () => {
+  const data = await persistAll();
+  const blob = new Blob([packText(data)], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pass-worksheet-notes.txt';
+  a.click();
+};
+document.getElementById('done').onclick = async () => {
+  const data = await persistAll();
+  const hook = loadHook();
+  if (hook.url && hook.key) {
+    await sendMark('success', { finished: true });
+    // also POST full dump
+    try {
+      await fetch(hook.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + hook.key },
+        body: JSON.stringify({ finished: true, full: packText(data), at: new Date().toISOString() }),
+        keepalive: true
+      });
+    } catch {}
+    toast('Finished dump sent');
+  } else {
+    try {
+      await navigator.clipboard.writeText(packText(data));
+      toast('All notes copied. Paste into chat.');
+    } catch {
+      document.getElementById('download').click();
+      toast('Downloaded notes.');
+    }
+  }
+};
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('install').hidden = false;
+});
+document.getElementById('install').onclick = async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  document.getElementById('install').hidden = true;
+};
+</script>
+</body>
+</html>
