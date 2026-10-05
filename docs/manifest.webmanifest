@@ -1,0 +1,23 @@
+{
+  "name": "The Pass worksheet",
+  "short_name": "Pass",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#e7e1d6",
+  "theme_color": "#1c1915",
+  "description": "Annotate The Pass brief. Marks save as you go.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
