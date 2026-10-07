@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pass, ingest worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --soft:#6d6458; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:10px 22px; background:#1c1915; color:#fbf8f2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  header.bar button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:5px 10px; cursor:pointer; }
+  header.bar button:hover { border-color:#fbf8f2; }
+  #saved { color:#b9b0a2; }
+  .sheet { max-width: 1060px; margin: 24px auto 80px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 32px 28px 10px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 12px; max-width: 66ch; }
+  .row { display:grid; grid-template-columns: 1fr 330px; border-bottom: 1px solid var(--rule); }
+  .body { padding: 20px 22px 20px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .body p { margin: 0 0 10px; }
+  .facts { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  .facts li { margin-bottom: 3px; }
+  fieldset { border:none; padding:0; margin: 6px 0 12px; }
+  legend { font: 600 13px/1.3 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin-bottom: 6px; }
+  label.opt { display:grid; grid-template-columns: 22px 1fr; gap: 4px; align-items:start; padding: 7px 8px; margin: 0 0 4px; border:1px solid transparent; cursor:pointer; }
+  label.opt:hover { border-color: var(--rule); }
+  label.opt input { margin-top: 5px; }
+  label.opt.on { background: #efe8da; border-color:#b3a898; }
+  .opt b { font-weight: 600; }
+  .opt small { display:block; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:#4a443c; margin-top:2px; }
+  .tag { font: 600 10px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; background:#1c1915; color:#fbf8f2; padding:3px 5px; margin-left:6px; vertical-align: 2px; }
+  .margin { background: var(--margin); padding: 14px; display:flex; flex-direction:column; gap:6px; }
+  .margin span { font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  textarea { flex:1; min-height: 120px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .out { padding: 20px 36px 30px; }
+  .out h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .out p { font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin: 0 0 8px; }
+  #summary { width:100%; min-height: 220px; background:#fff; border:1px solid var(--rule); padding:10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .body { border-right:none; padding-left:22px; } }
+  @media print { body { background:white; } header.bar { display:none; } .sheet { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span>The Pass, ingest worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
+  <span>
+    <button id="copy">Copy marks</button>
+    <button id="download">Download marks</button>
+    <button id="clear" title="Clear every mark on this page">Clear</button>
+  </span>
+</header>
+<article class="sheet">
+  <div class="intro">
+    <h1>Getting things in</h1>
+    <p>One front door, one tidy-up step, then Deck. Every source (Echo, phone, email, the desk) drops raw words in the same inbox. A curator tidies them and leaves a suggestion. The card lands in Deck's <b>Backlog</b> with the <b>To review</b> label, and The Pass ignores it until you take the label off. The curator never picks your next task, never moves a card to To Do or Doing, and never sets priority.</p>
+    <p>Five decisions. Pick what fits, change anything in the note box. The box at the bottom always shows your marks as plain text, so they can't get lost.</p>
+  </div>
+  <div id="rows"></div>
+  <section class="out">
+    <h2>Your marks, as text</h2>
+    <p>This updates as you click. If the buttons fail, select all in here and copy.</p>
+    <textarea id="summary" readonly></textarea>
+  </section>
+</article>
+<script>
+const decisions = [
+  {
+    id: "echo",
+    title: "1. How the Echos hand things over",
+    type: "radio",
+    intro: "Amazon shut off outside access to Alexa's lists for skills and apps in July 2024. That's why Todoist and others lost Alexa. Home Assistant got a new way back in this summer.",
+    facts: [
+      "\"Alexa, remind me about X\" belongs to Alexa's own reminders. She'll ask \"when?\" No option below keeps that exact wording unless you add a skill name.",
+      "Your HA is on 2026.10, which already includes the Alexa Devices integration with to-do lists. It isn't set up yet.",
+      "Alexa Media Player is installed and logged in. It shows the last thing you said. Your control panel Echo last logged \"what's the weather\" at 7:55 PM CT yesterday.",
+      "home.himbo.net is reachable from outside with a valid certificate, through Nabu Casa."
+    ],
+    options: [
+      ["list", "Alexa's own to-do list, passed along", "Say \"Alexa, add call the vet to my to-do list\" (or to a list you name, like \"Pass list\"). HA sees new items right away, sends each one to the inbox, then ticks it off Alexa's list. No skill to build. What you'd do: switch Amazon's 2-step sign-in to an authenticator app (not text messages), then add Alexa Devices in HA with a code from that app.", true],
+      ["skill", "A private Pass skill", "Say \"Alexa, tell the pass to remind me about call the vet.\" It's a free Amazon-hosted skill that only you can use, and it sends the words to HA. What you'd do: make a free Amazon developer account and click through the skill console once (I can write the parts). Alexa+ sometimes sends one-word skill names somewhere else, so it needs a two-word name."],
+      ["overhear", "Listen in on what you already say", "Say anything. HA reads Alexa's voice history and grabs lines that start with \"remind me about\". Alexa will still answer with her own reminder questions. Updates can lag by minutes, and it has broken before when Amazon changed things. Better as a backup than as the main way."],
+      ["both", "List now, skill later", "Start with the to-do list, and add the skill only if the wording bugs you."]
+    ]
+  },
+  {
+    id: "sources",
+    title: "2. What else uses the same front door",
+    type: "checkbox",
+    intro: "Everything posts the same small message to one n8n inbox: the words, where they came from, and when. Inside the house it goes straight to n8n. From outside, your phone or email goes through a hidden Home Assistant web address on home.himbo.net, and HA hands it to n8n, so n8n never faces the internet.",
+    facts: [
+      "Message shape: {text, source, source_id, captured_at}. Nothing else is required.",
+      "Right now /desk sends straight to The Pass and skips Deck. Ticking it below sends it through the inbox and Deck instead."
+    ],
+    options: [
+      ["siri", "iPhone: \"Hey Siri, pass note\"", "A Shortcut that asks what to note and sends it. Also works from the Action button, the lock screen, and the Watch.", true],
+      ["share", "iPhone share sheet", "Share a link, text, or email to \"Pass\" and it becomes an inbox item.", true],
+      ["email", "Email in", "Forward something to a dedicated address and n8n checks that mailbox. It only captures what you forward on purpose, never your whole inbox."],
+      ["assist", "Home Assistant voice", "\"Add X to the pass\" on the HA app or your VACA satellites. They show as unavailable right now."],
+      ["desk", "The Pass /desk", "Send desk entries through the inbox so they show up in Deck too."],
+      ["other", "Todoist and other apps later", "One small n8n flow per app, all feeding the same inbox."]
+    ]
+  },
+  {
+    id: "helpinbox",
+    title: "3. The Help Inbox you already have",
+    type: "radio",
+    intro: "Home Assistant already has a Help Inbox list (todo.help_inbox) with its own voice capture, web intake, quick-add box, receipt printing, and a half-hourly digest. It has one open item, \"getting all the ideas out of my head\", from July. Two inboxes is the thing the brief warned about.",
+    facts: [],
+    options: [
+      ["fold", "Feed it into the new inbox", "Anything that lands in Help Inbox gets passed to the front door. Its receipts and digest keep working until you say otherwise."],
+      ["leave", "Leave it alone", "Different job, different list."],
+      ["retire", "Retire it", "Turn those automations off once the new door works. One inbox, no extra cooks.", true],
+      ["show", "Not sure, show me what it does first", ""]
+    ]
+  },
+  {
+    id: "brain",
+    title: "4. What does the tidying",
+    type: "radio",
+    intro: "Text matching alone catches exact repeats and close wording like \"call vet\" vs \"call the vet\". It can't tell that \"book Mochi's shots\" and \"vet appointment\" are the same thing, and it can't break a ramble into steps. AI can do both. Either way, the text rules run first, and if the AI is down, items still arrive untouched.",
+    facts: [
+      "No AI service is connected to HA or n8n right now.",
+      "On your Pi 5, a small local model runs about 10 words a second (qwen2.5 1.5B) or about 5 (llama 3.2 3B), and uses 1 to 3 GB of the roughly 3.8 GB free."
+    ],
+    options: [
+      ["rules", "Text matching only", "Free and fully local. Catches repeats. Doesn't split anything into steps."],
+      ["cloud", "Text matching plus a cloud AI", "Needs one API key in n8n (OpenAI, Anthropic, Google Gemini, xAI Grok, or OpenRouter). A few words per item costs very little. Say which one in the note.", true],
+      ["pi", "Text matching plus AI on the Pi", "Private, but slower and noticeably worse at splitting. Takes memory away from HA."],
+      ["elsewhere", "Text matching plus AI on another always-on computer", "Only if there's a machine that stays on. Say which one in the note."]
+    ]
+  },
+  {
+    id: "rules",
+    title: "5. What the curator may do without asking",
+    type: "checkbox",
+    intro: "These are things it can do. None of them choose for you. Accepting a card means taking off the To review label in Deck, and you can edit anything first.",
+    facts: [
+      "It will never pick your next task, move a card to To Do or Doing, set priority, or nag."
+    ],
+    options: [
+      ["review", "Everything lands in Backlog labeled To review, and The Pass skips it until the label comes off", "The safety net. Without it, items go straight into The Pass.", true],
+      ["repeat", "Exact repeat of an open card: no new card, just a \"said again\" comment on the old one", "Stops five Echo captures of the same thing turning into five cards.", true],
+      ["maybe", "Possible duplicate: still make the card, with \"might be the same as\" and a link", "You decide whether to merge.", true],
+      ["steps", "Suggest steps as checklist lines", "These become slips once you accept. Delete any you don't want first.", true],
+      ["title", "Tidy the title, keeping your exact words in the description", "\"um remind me about the uh vet thing\" becomes \"Vet thing\".", true],
+      ["due", "If you said a time (\"by Friday\"), set it as the Deck due date", "Only when you said it. It never guesses."],
+      ["stack", "Note a suggested stack (for example \"looks Blocked: waiting on Sam\")", "A note in the description only. The card never moves."]
+    ]
+  }
+];
+
+const KEY = "pass-ingest-worksheet-v1";
+const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+const root = document.getElementById("rows");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+decisions.forEach(d => {
+  const prev = saved[d.id] || {};
+  const row = document.createElement("section");
+  row.className = "row";
+  row.dataset.id = d.id;
+  const opts = d.options.map(([v, label, help, rec]) => `
+    <label class="opt"><input type="${d.type}" name="${d.id}" value="${v}">
+      <span><b>${esc(label)}</b>${rec ? '<span class="tag">suggested</span>' : ''}${help ? `<small>${esc(help)}</small>` : ''}</span>
+    </label>`).join("");
+  row.innerHTML = `
+    <div class="body">
+      <h2>${esc(d.title)}</h2>
+      <p>${esc(d.intro)}</p>
+      ${d.facts.length ? `<ul class="facts">${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <fieldset><legend>${d.type === "radio" ? "Pick one" : "Tick any"}</legend>${opts}</fieldset>
+    </div>
+    <div class="margin">
+      <span>Notes</span>
+      <textarea placeholder="Change it, add a wording, name the AI provider, anything"></textarea>
+    </div>`;
+  const picked = prev.picked || [];
+  row.querySelectorAll("input").forEach(i => { if (picked.includes(i.value)) i.checked = true; });
+  row.querySelector("textarea").value = prev.note || "";
+  row.addEventListener("change", update);
+  row.querySelector("textarea").addEventListener("input", update);
+  root.appendChild(row);
+});
+
+function collect() {
+  const data = {};
+  document.querySelectorAll(".row").forEach(row => {
+    data[row.dataset.id] = {
+      picked: [...row.querySelectorAll("input:checked")].map(i => i.value),
+      note: row.querySelector("textarea").value
+    };
+    row.querySelectorAll("label.opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  });
+  return data;
+}
+
+function pack(data) {
+  const stamp = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" }) + " CT";
+  const parts = [`The Pass ingest worksheet, marks as of ${stamp}`];
+  decisions.forEach(d => {
+    const m = data[d.id] || { picked: [], note: "" };
+    const labels = d.options.filter(o => m.picked.includes(o[0])).map(o => o[1]);
+    let s = `${d.title}\n  ${labels.length ? labels.map(l => "- " + l).join("\n  ") : "(nothing picked)"}`;
+    if (m.note.trim()) s += `\n  Note: ${m.note.trim().replace(/\n/g, "\n        ")}`;
+    parts.push(s);
+  });
+  return parts.join("\n\n");
+}
+
+function update() {
+  const data = collect();
+  localStorage.setItem(KEY, JSON.stringify(data));
+  document.getElementById("summary").value = pack(data);
+  document.getElementById("saved").textContent = "Saved.";
+}
+update();
+document.getElementById("saved").textContent = "";
+
+document.getElementById("copy").onclick = async () => {
+  const text = pack(collect());
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const s = document.getElementById("summary"); s.focus(); s.select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy marks", 1500);
+};
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([pack(collect())], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pass-ingest-marks.txt";
+  a.click();
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Clear every mark and note on this page?")) return;
+  document.querySelectorAll(".row input").forEach(i => i.checked = false);
+  document.querySelectorAll(".row textarea").forEach(t => t.value = "");
+  update();
+};
+</script>
+</body>
+</html>
