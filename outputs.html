@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signals from sorted notifications, worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --soft:#6d6458; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:10px 22px; background:#1c1915; color:#fbf8f2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  header.bar button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:5px 10px; cursor:pointer; }
+  header.bar button:hover { border-color:#fbf8f2; }
+  #saved { color:#b9b0a2; }
+  .sheet { max-width: 1060px; margin: 24px auto 80px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 32px 28px 10px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 12px; max-width: 66ch; }
+  .row { display:grid; grid-template-columns: 1fr 330px; border-bottom: 1px solid var(--rule); }
+  .body { padding: 20px 22px 20px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .body p { margin: 0 0 10px; }
+  .facts { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  .facts li { margin-bottom: 3px; }
+  fieldset { border:none; padding:0; margin: 6px 0 12px; }
+  legend { font: 600 13px/1.3 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin-bottom: 6px; }
+  label.opt { display:grid; grid-template-columns: 22px 1fr; gap: 4px; align-items:start; padding: 7px 8px; margin: 0 0 4px; border:1px solid transparent; cursor:pointer; }
+  label.opt:hover { border-color: var(--rule); }
+  label.opt input { margin-top: 5px; }
+  label.opt.on { background: #efe8da; border-color:#b3a898; }
+  .opt b { font-weight: 600; }
+  .opt small { display:block; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:#4a443c; margin-top:2px; }
+  .tag { font: 600 10px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; background:#1c1915; color:#fbf8f2; padding:3px 5px; margin-left:6px; vertical-align: 2px; }
+  .margin { background: var(--margin); padding: 14px; display:flex; flex-direction:column; gap:6px; }
+  .margin span { font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  textarea { flex:1; min-height: 120px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .out { padding: 20px 36px 30px; }
+  .out h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .out p { font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin: 0 0 8px; }
+  #summary { width:100%; min-height: 220px; background:#fff; border:1px solid var(--rule); padding:10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  .part { padding: 26px 28px 8px 36px; border-bottom: 1px solid var(--rule); background:#f6f1e7; }
+  .part h2 { font-weight:500; font-size:22px; margin:0 0 6px; }
+  .part p { margin:0 0 10px; max-width:70ch; }
+  .part ul { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .body { border-right:none; padding-left:22px; } }
+  @media print { body { background:white; } header.bar { display:none; } .sheet { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span>Signals worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
+  <span>
+    <button id="copy">Copy marks</button>
+    <button id="download">Download marks</button>
+    <button id="clear" title="Clear every mark on this page">Clear</button>
+  </span>
+</header>
+<article class="sheet">
+  <div class="intro">
+    <h1>Signals from sorted notifications</h1>
+    <p>Every notification is now sorted by Grok into From people, Has a date, Money and accounts, Counts only, or Everything else, and some are flagged to print right away. Each sorted item fires an event in Home Assistant, and each QR scan on a slip fires another. Nothing listens to those events yet.</p>
+    <p>Part A settles five leftovers from the receipt build. Part B is about which lights, speakers and displays respond to those events, if any. Each item has a suggestion marked; the notes box takes anything else. Nothing changes in Home Assistant until your marks are in. The box at the bottom shows your marks as plain text.</p>
+  </div>
+  <div id="rows"></div>
+  <section class="out">
+    <h2>Your marks, as text</h2>
+    <p>This updates as you click. If the buttons fail, select all in here and copy.</p>
+    <textarea id="summary" readonly></textarea>
+  </section>
+</article>
+<script>
+const DEV = {
+  desk:     ["Steelcase desk", "A short move up and back down. See B11 for what a move would mean."],
+  lounge:   ["Lounge Status Lamp, segment 3", "Segment 3 already shows the Command Center \"messages\" zone. It would take the section's color until the item is cleared, then go back to its Command Center color."],
+  foyer:    ["Foyer Status Light", "The 7-segment light by the front door. Nothing else uses it right now. It would glow the section's color softly until cleared."],
+  hood:     ["Hood Desk Lamp", "One slow color pulse, then back to whatever it was showing. Nothing stays lit."],
+  echoK:    ["Kitchen Echo Show 10", "Chime or words, per B10."],
+  echoH:    ["himbo command center (Echo)", "Chime or words, per B10."],
+  sonos:    ["Sonos speakers", "The Studio, Studio Washroom, Hallway, Living Room, Move. Chime or words, per B10. Rooms can go in the notes."],
+  unicorn:  ["Galactic Unicorn", "One scrolling line between its usual clock and weather scenes. What the line says follows B10."],
+  idm:      ["iDotMatrix panel", "The 32x32 pixel panel shows a small icon or color block for the section until cleared."],
+  fdisplay: ["Foyer display", "A notification card on the foyer screen. It goes away when cleared."],
+  paper:    ["Paper only", "No other output. The slip is the only place it shows up."]
+};
+const ORDER = ["lounge", "foyer", "hood", "unicorn", "idm", "fdisplay", "echoK", "echoH", "sonos", "desk", "paper"];
+const outputs = (suggested, extra = {}) => ORDER.map(k => [k, DEV[k][0], extra[k] || DEV[k][1], suggested.includes(k)]);
+
+const decisions = [
+  { part: "Part A. Leftovers from the receipt build",
+    text: "Five things that came up while building the hourly slip. Each one is small, and each can change again later.",
+    facts: [] },
+  {
+    id: "countsonly",
+    title: "A1. Slips with only counts on them",
+    type: "radio",
+    intro: "Counts only is the section for apps that aren't read out (Scruff, Signal, Telegram, Authenticator, MyChart, Doximity). Right now it counts as a real section, so a single Scruff ping is enough to print a slip.",
+    facts: [
+      "In today's replay, 4 of the 7 hourly slips (3, 5, 6 and 8 PM) printed only because of a Scruff or Instagram count.",
+      "Signal and Telegram messages still print right away as From people. Only the count lines are affected here."
+    ],
+    options: [
+      ["ride", "Counts alone don't print a slip", "Counts wait and appear on the next slip that has something in From people, Has a date, or Money and accounts.", true],
+      ["print", "Counts print a slip, as now", "Any count is enough for a slip."],
+      ["threshold", "Counts print a slip once there are several", "For example 5 or more since the last slip. The number can go in the notes."]
+    ]
+  },
+  {
+    id: "qr",
+    title: "A2. Where the QR codes go",
+    type: "radio",
+    intro: "A QR on the slip lets a scan at The Pass mark something as seen. That scan is also what clears any light or display from Part B.",
+    facts: [
+      "Now: one QR per item in From people, Has a date, and Money and accounts, plus one at the bottom of every slip. Each item QR uses roughly 1.5 cm of paper.",
+      "Every print-right-away slip has its own QR in all of these options.",
+      "A slip QR marks everything on that slip as seen at once."
+    ],
+    options: [
+      ["slip", "One QR per slip, plus one on each print-right-away slip", "Shorter slips. A scan marks the whole slip as seen and clears its signals together.", true],
+      ["items", "A QR on every From people, Has a date, and Money item, as now", "Items can be marked one at a time. Longer slips."],
+      ["people", "Item QRs for From people only, one slip QR for the rest", "A middle ground."]
+    ]
+  },
+  {
+    id: "triage",
+    title: "A3. The old triage file",
+    type: "radio",
+    intro: "triage.yaml held the Asana mirror. It is now emptied: its webhook is gone and sensor.triage_do_now reads 0. The file and its parked automation (\"[parked] Triage: refresh the Asana mirror\") are still in Home Assistant.",
+    facts: [
+      "A copy of the original file is in /config/backups/receipt-2026-10-07-20261007-2043/.",
+      "The morning card still reads the now-empty list for its \"Has a date\" lines. Deleting the file includes taking that reference out of adhd_os.yaml."
+    ],
+    options: [
+      ["delete", "Delete the file and its automations", "The morning card's reference to it goes too. The backup copy stays, so it can come back.", true],
+      ["leave", "Leave it emptied and disabled", "No change from now."],
+      ["show", "Show me what's in it first", "A plain list of what's left and what it touches, before anything is deleted."]
+    ]
+  },
+  {
+    id: "noted",
+    title: "A4. What The Pass says when an N-code is scanned",
+    type: "radio",
+    intro: "QR codes on receipt slips start with N, so they never collide with Pass card codes (C and S). A scan already marks the item as seen. The Pass screen still replies \"isn't a Pass code. Nothing changed.\", which is wrong but harmless.",
+    facts: [
+      "The fix is a few lines in The Pass add-on: recognise N-codes and reply \"Noted.\"",
+      "The add-on also has scanner (hidscan) changes that aren't pushed yet. A rebuild now would go out without them, or with them before they're finished."
+    ],
+    options: [
+      ["now", "Now, as its own small change", "One extra add-on rebuild."],
+      ["later", "Later, together with the scanner changes", "One rebuild covers both. The wrong reply stays until then.", true],
+      ["never", "Never", "The reply stays as it is."]
+    ]
+  },
+  {
+    id: "backonline",
+    title: "A5. The old \"printing is possible again\" trigger",
+    type: "radio",
+    intro: "The hourly slip still has an older second trigger that runs when printing becomes possible again (printer online, you're home, Focus off, within printing hours). With hourly slips it mostly stops itself, and it can still print an extra slip between hours.",
+    facts: [
+      "Items flagged to print right away that arrive while printing is off wait in the queue.",
+      "Printing hours are 8:00 AM to 10:30 PM CT."
+    ],
+    options: [
+      ["catchup", "Keep it only for waiting print-right-away items", "When printing becomes possible, a slip prints only if something flagged to print right away waited. Everything else waits for the top of the hour.", true],
+      ["remove", "Remove it", "Anything that waited prints on the next hourly slip."],
+      ["keep", "Keep it as it is", "A catch-up slip can print whenever printing becomes possible again."]
+    ]
+  },
+  { part: "Part B. Lights, speakers and displays",
+    text: "These are signals. A signal shows that something arrived and where it was sorted. It never asks for anything, and nothing escalates, repeats, or gets louder if it's left alone. The slip stays the full record.",
+    facts: [
+      "Live now: Steelcase desk, Lounge Status Lamp, Foyer Status Light, Hood Desk Lamp, Kitchen Echo Show 10, himbo command center, Sonos speakers, Galactic Unicorn, iDotMatrix panel, Foyer display.",
+      "Once they're back, these could join: Foyer Echo Show 15, Chamber Echo Show, Bedroom Status Lamp, Studio Status Light, the Steelcase desk panel display, WLED Hoods.",
+      "Counts only and Everything else don't drive any output in this draft. A note in any box can change that.",
+      "Pulses are slow and soft, with no fast flashing. Suggested colors: From people amber, Has a date blue, Money and accounts green, print right away magenta, short-code alert white.",
+      "Each section below takes any number of outputs, or Paper only."
+    ] },
+  {
+    id: "people",
+    title: "B1. From people",
+    type: "checkbox",
+    intro: "Texts and messages from a person, contact or not, and missed calls from contacts.",
+    facts: ["Today: about 3 items (the pride text, a missed message, and tonight's \"came across your name\" text)."],
+    options: outputs(["lounge", "unicorn"])
+  },
+  {
+    id: "dated",
+    title: "B2. Has a date",
+    type: "checkbox",
+    intro: "Deliveries, appointments, reservations, anything with a day or time attached.",
+    facts: ["Today: about 8 items (DoorDash, Amazon delivered, Rinse scheduling and driver texts).", "The Foyer Status Light is by the door, where deliveries arrive."],
+    options: outputs(["foyer", "unicorn"])
+  },
+  {
+    id: "money",
+    title: "B3. Money and accounts",
+    type: "checkbox",
+    intro: "Receipts, failed payments, subscription and account notices.",
+    facts: ["Today: about 10 items (PayPal receipt and a failed $2.99 PayPal charge, the Microsoft 365 payment notice, Monarch, Rocket Money)."],
+    options: outputs(["paper"])
+  },
+  {
+    id: "rightaway",
+    title: "B4. Print right away",
+    type: "checkbox",
+    intro: "Anything flagged to print the moment it arrives: texts from people, missed calls from contacts, things with a clock on them. These outputs would be in addition to the section's own outputs above.",
+    facts: ["Today's replay: 3 items printed right away (the pride text and two delivery-time texts, including the Rinse driver 5 minutes out)."],
+    options: outputs(["hood", "unicorn"])
+  },
+  {
+    id: "shortcode",
+    title: "B5. Short-code alert",
+    type: "checkbox",
+    intro: "A text from a 5- or 6-digit number that Grok marks as needing to be known now: possible fraud, a sign-in code, an outage, a delivery problem. Routine short-code texts don't count.",
+    facts: ["Today, none were flagged. The failed $2.99 PayPal charge went to Money and accounts, and the Rinse delivery texts went to Has a date."],
+    options: outputs(["hood", "unicorn"], { unicorn: "One scrolling line naming the company, for example \"PayPal alert\"." })
+  },
+  {
+    id: "clear",
+    title: "B6. How a scan clears signals",
+    type: "radio",
+    intro: "Scanning an item's or a slip's QR at The Pass marks it seen. These options cover what happens to anything still lit or showing.",
+    facts: [
+      "A scan returns each lamp to what it was doing before: the Lounge lamp's segment 3 goes back to its Command Center color, the Foyer light turns off, display lines go away.",
+      "Unless the notes say otherwise, a scan also gets one short green blink on the lamp it cleared, as confirmation.",
+      "Pulses (the Hood Desk Lamp) and spoken chimes are over in seconds, so they have nothing to clear."
+    ],
+    options: [
+      ["both", "A scan clears it right away, and anything unscanned fades when the next hourly slip prints", "Nothing lingers more than an hour. The slip still has every item.", true],
+      ["scan", "Signals stay until scanned", "Lamps can stay lit for hours or overnight."],
+      ["timer", "Signals fade after a set time, scan or not", "The number of minutes can go in the notes."],
+      ["fade", "Signals fade on their own; scans only mark items seen", "Scans change nothing you can see."]
+    ]
+  },
+  {
+    id: "quiet",
+    title: "B7. Quiet hours",
+    type: "radio",
+    intro: "Outside printing hours (8:00 AM to 10:30 PM CT), or when you're away.",
+    facts: [
+      "Home Assistant also has DND switches for the bedroom and the studio (input_boolean.dnd_bedroom, dnd_studio).",
+      "Speakers in a room with DND on would stay silent in every option."
+    ],
+    options: [
+      ["off", "Nothing outside printing hours; unscanned items show up when they start", "At 8:00 AM, lamps light for anything still unscanned. No sound for overnight items.", true],
+      ["lights", "Lights only outside printing hours, no sound", "Lamps and displays still respond. Speakers stay silent."],
+      ["same", "No difference", "Outputs respond the same at any hour."]
+    ]
+  },
+  {
+    id: "focus",
+    title: "B8. Focus and pomodoros",
+    type: "radio",
+    intro: "While the phone's Focus is on, or a pomodoro is running. The slip already holds during a pomodoro and prints at the break.",
+    facts: ["The break slip says how many things came in, and that anything time-sensitive already printed."],
+    options: [
+      ["urgentlight", "Only print-right-away items, and only as a light; the rest shows at the break", "No sound during Focus or a pomodoro.", true],
+      ["nothing", "Nothing until Focus ends or the break starts", "Everything waits, including print-right-away items."],
+      ["same", "No difference", "Outputs respond the same as any other time."]
+    ]
+  },
+  {
+    id: "combine",
+    title: "B9. When several things arrive close together",
+    type: "radio",
+    intro: "Several items can land within a minute, for example a delivery text followed by a photo.",
+    facts: ["Today, 8 to 28 notifications arrived per hour."],
+    options: [
+      ["one", "One signal per section per few minutes", "A lamp that's already lit stays lit. A second chime within 5 minutes is skipped.", true],
+      ["each", "Every item gets its own signal", "More chimes and pulses."]
+    ]
+  },
+  {
+    id: "speech",
+    title: "B10. What speakers and displays say",
+    type: "radio",
+    intro: "This applies only to the speakers and displays ticked in B1 to B5. Wording is descriptive, for example \"A text from a person.\" Nothing asks for anything.",
+    facts: [
+      "The Echos already use chime_tts. The washer and dryer announcement uses its \"tada\" chime.",
+      "Guests in the lounge or kitchen would hear or see anything spoken or shown."
+    ],
+    options: [
+      ["chime", "Speakers: a chime only. Displays: the section name and time", "For example the Unicorn scrolls \"From people · 9:14\". No names out loud.", true],
+      ["section", "The section name, spoken and shown", "\"From people.\" \"Has a date.\""],
+      ["sender", "The section and the sender, spoken and shown", "\"From people: Jordan.\" Companies by brand name. Unknown numbers as \"a number not in contacts\"."],
+      ["mixed", "Displays show section and sender; speakers only chime", "Names stay visual."]
+    ]
+  },
+  {
+    id: "desk",
+    title: "B11. The desk",
+    type: "radio",
+    intro: "The Steelcase desk has nudge buttons in Home Assistant that move it a little up or down. A nudge could act as a physical tap.",
+    facts: [
+      "The desk can't tell whether someone is at it. Once the desk panel's presence radar is back, nudges could be limited to when someone is there.",
+      "A move shifts whatever is on the desk, and the motor makes a sound."
+    ],
+    options: [
+      ["never", "The desk never moves for notifications", "It stays a desk.", true],
+      ["urgent", "A small nudge up and back for print-right-away items only", "About a second of movement."],
+      ["people", "A small nudge for print-right-away items and From people", "More frequent."]
+    ]
+  },
+  {
+    id: "cyd",
+    title: "B12. A CYD panel",
+    type: "radio",
+    intro: "There's no CYD (Cheap Yellow Display) panel in Home Assistant yet. The CYD Tiled Display Configurator add-on is installed and could set one up as a small tile screen for these signals.",
+    facts: ["A CYD tile could show one square per section that lights when something arrives and clears on a scan."],
+    options: [
+      ["later", "Later, after these signals have run for a while", "Set it up through the CYD Tiled Display Configurator, then add it as an output here.", true],
+      ["next", "Next, as its own small project", ""],
+      ["no", "Not needed", ""]
+    ]
+  }
+];
+
+const KEY = "pass-outputs-worksheet-v1";
+const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+const root = document.getElementById("rows");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+decisions.forEach(d => {
+  if (d.part) {
+    const p = document.createElement("section");
+    p.className = "part";
+    p.innerHTML = `<h2>${esc(d.part)}</h2><p>${esc(d.text)}</p>${d.facts.length ? `<ul>${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}`;
+    root.appendChild(p);
+    return;
+  }
+  const prev = saved[d.id] || {};
+  const row = document.createElement("section");
+  row.className = "row";
+  row.dataset.id = d.id;
+  const opts = d.options.map(([v, label, help, rec]) => `
+    <label class="opt"><input type="${d.type}" name="${d.id}" value="${v}">
+      <span><b>${esc(label)}</b>${rec ? '<span class="tag">suggested</span>' : ''}${help ? `<small>${esc(help)}</small>` : ''}</span>
+    </label>`).join("");
+  row.innerHTML = `
+    <div class="body">
+      <h2>${esc(d.title)}</h2>
+      <p>${esc(d.intro)}</p>
+      ${d.facts.length ? `<ul class="facts">${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <fieldset><legend>${d.type === "radio" ? "One choice" : "Any that fit"}</legend>${opts}</fieldset>
+    </div>
+    <div class="margin">
+      <span>Notes</span>
+      <textarea placeholder="Change it, add a wording, list times or names, anything"></textarea>
+    </div>`;
+  const picked = prev.picked || [];
+  row.querySelectorAll("input").forEach(i => { if (picked.includes(i.value)) i.checked = true; });
+  row.querySelector("textarea").value = prev.note || "";
+  row.addEventListener("change", update);
+  row.querySelector("textarea").addEventListener("input", update);
+  root.appendChild(row);
+});
+
+function collect() {
+  const data = {};
+  document.querySelectorAll(".row").forEach(row => {
+    data[row.dataset.id] = {
+      picked: [...row.querySelectorAll("input:checked")].map(i => i.value),
+      note: row.querySelector("textarea").value
+    };
+    row.querySelectorAll("label.opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  });
+  return data;
+}
+
+function pack(data) {
+  const stamp = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" }) + " CT";
+  const parts = [`Signals worksheet, marks as of ${stamp}`];
+  decisions.forEach(d => {
+    if (d.part) { parts.push(`== ${d.part} ==`); return; }
+    const m = data[d.id] || { picked: [], note: "" };
+    const labels = d.options.filter(o => m.picked.includes(o[0])).map(o => o[1]);
+    let s = `${d.title}\n  ${labels.length ? labels.map(l => "- " + l).join("\n  ") : "(nothing picked)"}`;
+    if (m.note.trim()) s += `\n  Note: ${m.note.trim().replace(/\n/g, "\n        ")}`;
+    parts.push(s);
+  });
+  return parts.join("\n\n");
+}
+
+function update() {
+  const data = collect();
+  localStorage.setItem(KEY, JSON.stringify(data));
+  document.getElementById("summary").value = pack(data);
+  document.getElementById("saved").textContent = "Saved.";
+}
+update();
+document.getElementById("saved").textContent = "";
+
+document.getElementById("copy").onclick = async () => {
+  const text = pack(collect());
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const s = document.getElementById("summary"); s.focus(); s.select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy marks", 1500);
+};
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([pack(collect())], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "signals-marks.txt";
+  a.click();
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Clear every mark and note on this page?")) return;
+  document.querySelectorAll(".row input").forEach(i => i.checked = false);
+  document.querySelectorAll(".row textarea").forEach(t => t.value = "");
+  update();
+};
+</script>
+</body>
+</html>
