@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The receipt slips, worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --soft:#6d6458; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:10px 22px; background:#1c1915; color:#fbf8f2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  header.bar button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:5px 10px; cursor:pointer; }
+  header.bar button:hover { border-color:#fbf8f2; }
+  #saved { color:#b9b0a2; }
+  .sheet { max-width: 1060px; margin: 24px auto 80px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 32px 28px 10px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 12px; max-width: 66ch; }
+  .row { display:grid; grid-template-columns: 1fr 330px; border-bottom: 1px solid var(--rule); }
+  .body { padding: 20px 22px 20px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .body p { margin: 0 0 10px; }
+  .facts { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  .facts li { margin-bottom: 3px; }
+  fieldset { border:none; padding:0; margin: 6px 0 12px; }
+  legend { font: 600 13px/1.3 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin-bottom: 6px; }
+  label.opt { display:grid; grid-template-columns: 22px 1fr; gap: 4px; align-items:start; padding: 7px 8px; margin: 0 0 4px; border:1px solid transparent; cursor:pointer; }
+  label.opt:hover { border-color: var(--rule); }
+  label.opt input { margin-top: 5px; }
+  label.opt.on { background: #efe8da; border-color:#b3a898; }
+  .opt b { font-weight: 600; }
+  .opt small { display:block; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:#4a443c; margin-top:2px; }
+  .tag { font: 600 10px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; background:#1c1915; color:#fbf8f2; padding:3px 5px; margin-left:6px; vertical-align: 2px; }
+  .margin { background: var(--margin); padding: 14px; display:flex; flex-direction:column; gap:6px; }
+  .margin span { font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  textarea { flex:1; min-height: 120px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .out { padding: 20px 36px 30px; }
+  .out h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .out p { font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin: 0 0 8px; }
+  #summary { width:100%; min-height: 220px; background:#fff; border:1px solid var(--rule); padding:10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .body { border-right:none; padding-left:22px; } }
+  @media print { body { background:white; } header.bar { display:none; } .sheet { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span>Receipt slips worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
+  <span>
+    <button id="copy">Copy marks</button>
+    <button id="download">Download marks</button>
+    <button id="clear" title="Clear every mark on this page">Clear</button>
+  </span>
+</header>
+<article class="sheet">
+  <div class="intro">
+    <h1>The receipt slips</h1>
+    <p>This is about the slip the desk printer makes every half hour from your phone's notifications. It decides what prints right away, what waits for the slip, what goes at the top, and what never prints at all.</p>
+    <p>Eight decisions, in order. Each one has a suggestion marked; change anything in the notes box. Nothing changes in Home Assistant until your marks are in. The box at the bottom always shows your marks as plain text, so they can't get lost.</p>
+  </div>
+  <div id="rows"></div>
+  <section class="out">
+    <h2>Your marks, as text</h2>
+    <p>This updates as you click. If the buttons fail, select all in here and copy.</p>
+    <textarea id="summary" readonly></textarea>
+  </section>
+</article>
+<script>
+const decisions = [
+  {
+    id: "sorting",
+    title: "1. How sorting gets done",
+    type: "radio",
+    intro: "Every notification from your phone gets sorted into a section of the half-hourly slip. Right now a fixed list of words decides, and a word counts even when it's hidden inside a longer word.",
+    facts: [
+      "Today, 8 AM to 8 PM CT: 182 notifications, all from the Pixel Fold. Nothing came from the iPhones, Beeper, or email.",
+      "9 got the top heading. About 2 were real: the Microsoft 365 payment email and the $2.99 PayPal charge.",
+      "The rest matched by accident: \"please\" and \"release\" contain \"lease\", \"Courtroom\" contains \"court\", \"billing\" contains \"bill\".",
+      "Grok (the same model the curator uses, key already set up) took about 1 second per item in testing. Today's volume would be about 180 calls a day."
+    ],
+    options: [
+      ["rules", "Fixed word rules, whole words only", "Same idea as now, with the hidden-word matches fixed. Free, local, predictable. Still can't tell a newsletter about a court case from a court date."],
+      ["grok", "Grok sorts, the word rules are the fallback", "Each item goes to Grok with a short list of section names. If Grok is down or slow, the fixed rules sort it instead. Nothing is ever dropped because of a failure.", true],
+      ["both", "Rules first, Grok only for the unclear ones", "The rules place the obvious items (known apps, known senders). Only items the rules can't place go to Grok. Fewer calls, and a little more to maintain."]
+    ]
+  },
+  {
+    id: "never",
+    title: "2. What never lands in the top section",
+    type: "checkbox",
+    intro: "The top section is the one that's meant to matter. Anything ticked here can still show up lower on the slip or in Home Assistant's history. It just can't sit at the top.",
+    facts: [
+      "The Ossoff fundraising message was a Gmail notification, not a text. It reached the top because \"please\" contains \"lease\".",
+      "3 of today's 4 texts came from short codes or companies (a delivery service, PayPal, a lab-test promo).",
+      "Gmail is on the old \"people\" list, so company email can be filed as if a person wrote it."
+    ],
+    options: [
+      ["political", "Political and fundraising messages", "Campaigns, ActBlue, WinRed, \"for Senate\", \"chip in\", \"humbly asking\".", true],
+      ["shortcode", "Short-code senders", "Texts from 5- and 6-digit numbers, which are almost always companies.", true],
+      ["newsletters", "Newsletters", "Puck, Substack-style senders, anything with an unsubscribe footer.", true],
+      ["companymail", "Company email filed as \"people\"", "Email only counts as people when a person sent it, not a brand.", true],
+      ["unknown", "Texts from numbers not in your contacts", "Cuts spam. It also would have kept today's one real person text (from a number with no contact name) out of the top."]
+    ]
+  },
+  {
+    id: "names",
+    title: "3. Section names on the slip",
+    type: "radio",
+    intro: "Today's slip says INCOMING, then NEEDS A CALL, PEOPLE, GO LOOK, HEADLINES, and a \"quiet:\" line. Empty slips say \"Nothing that needs you.\" These are proposed replacements that describe what's there rather than what to do about it.",
+    facts: [
+      "\"GO LOOK\" is the count-only section for apps that can't or shouldn't be read (Signal, Telegram, Authenticator, MyChart, Doximity).",
+      "Whatever is picked here also replaces the \"Needs a call\" heading on the morning card (see item 8)."
+    ],
+    options: [
+      ["plain", "From people · Has a date · Money and accounts · Counts only · Everything else", "Header: \"Since 7:30\" instead of INCOMING.", true],
+      ["short", "People · Dates · Accounts · Counts · Other", "The same sections with shorter words."],
+      ["apps", "No categories, just grouped by app", "For example \"Gmail (4): Microsoft 365, Puck…\". Nothing is ranked."],
+      ["own", "My own names", "Write them in the notes box, one per section."]
+    ]
+  },
+  {
+    id: "rightaway",
+    title: "4. What prints right away",
+    type: "checkbox",
+    intro: "These print the moment they arrive, during printing hours, instead of waiting for the next slip. Everything else waits.",
+    facts: [
+      "Today only one thing printed right away: a \"Rise and Shine / Starting Now\" planner reminder at 9:00 AM CT.",
+      "A real person's text at 6:52 PM CT came through OpenBubbles. The rules didn't recognise that app, so the text was buried in \"+4 more\" on the 7:00 PM slip.",
+      "No calls were captured today. The Pixel is the only feed until the iPhone bridges are paired."
+    ],
+    options: [
+      ["contacts", "Texts from people in your contacts", "Includes OpenBubbles and other messaging apps, matched against your contacts.", true],
+      ["anytext", "Any text from a person, contact or not", "Short codes and companies stay out."],
+      ["missed", "Missed calls from contacts", "Only calls nobody picked up.", true],
+      ["timing", "Things with a clock on them", "Out for delivery, your driver is here, starting now, time to leave."],
+      ["nothing", "Nothing prints right away", "Everything waits for the slip."]
+    ]
+  },
+  {
+    id: "often",
+    title: "5. How often the slip prints",
+    type: "radio",
+    intro: "Printing hours stay as they are (8:00 AM to 10:30 PM, when you're home and the phone's Focus is off). The slip already holds during a running pomodoro and prints at the break.",
+    facts: [
+      "Today 8 to 28 notifications arrived per hour, so the queue is almost never empty. That's about 29 slips a day.",
+      "The 6:30, 7:00 and 7:30 PM slips said \"Nothing that needs you\" plus a quiet line."
+    ],
+    options: [
+      ["30", "Every 30 minutes", "As now."],
+      ["60", "Every hour", "On the hour.", true],
+      ["120", "Every 2 hours", "10, 12, 2, 4, 6, 8, 10."],
+      ["fixed", "A few set times", "For example 10 AM, 1 PM, 4 PM, 7 PM, 10 PM. Put the times in the notes."],
+      ["event", "Only when something lands in a real section", "No clock. A slip prints a few minutes after something lands in a real section, batching anything else that came in."]
+    ]
+  },
+  {
+    id: "empty",
+    title: "6. Slips with nothing in a real section",
+    type: "radio",
+    intro: "A real section means anything above the quiet line: people, dates, money and accounts, counts.",
+    facts: [
+      "Most of today's slips had nothing in a real section."
+    ],
+    options: [
+      ["skip", "Don't print them", "The items roll into the next slip that does print, so nothing disappears.", true],
+      ["oneline", "Print one short line", "For example \"14 since 7:30, all quiet\", with no cut-off slip of its own."],
+      ["keep", "Print them as now", "A full slip every time."]
+    ]
+  },
+  {
+    id: "offpaper",
+    title: "7. What stays off paper",
+    type: "checkbox",
+    intro: "Ticked items never print. They still go into Home Assistant's logbook, so you can scroll back through them.",
+    facts: [
+      "Today: Meshtastic 23, Grok Bot chat 20, Gmail \"Syncing new mail\" several times an hour, and shopping apps (Target, Amazon, Uber Eats, Wayfair, StockX, Instacart).",
+      "The quiet line lists up to 6 titles and then \"+N more\". That's where today's real text got lost."
+    ],
+    options: [
+      ["mesh", "Meshtastic", "Mesh chatter and \"New node seen\".", true],
+      ["grokbot", "Grok Bot and Sweep chat", "You already see these in the app.", true],
+      ["shopping", "Shopping and delivery-app promos", "Order updates with a clock on them still follow item 4.", true],
+      ["syncing", "\"Syncing new mail\"", "Gmail housekeeping with no content.", true],
+      ["quiet", "The quiet tally line itself", "Slips show only real sections. If item 6 is set to skip, the tally only appears on slips that print anyway."]
+    ]
+  },
+  {
+    id: "asana",
+    title: "8. The old Asana leftovers",
+    type: "radio",
+    intro: "Asana is gone, but two pieces of it still sit in Home Assistant.",
+    facts: [
+      "sensor.triage_do_now still holds 5 Asana items from August (an Uber payment, Soundiiz, a GoDaddy domain, an HR approval, Google Pics). The slip ignores them only because nothing has synced since Sep 7. If anything posts to the old triage address again, they'd be back.",
+      "The morning chore card (adhd_os) has a \"Needs a call\" heading built from that same list."
+    ],
+    options: [
+      ["clear", "Clear it out", "Empty the old list, and give the morning card's heading the names from item 3.", true],
+      ["leave", "Leave it", "Change nothing."],
+      ["show", "Show me first", "A plain list of what's there and where it appears, before anything changes."]
+    ]
+  }
+];
+
+const KEY = "pass-digest-worksheet-v1";
+const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+const root = document.getElementById("rows");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+decisions.forEach(d => {
+  const prev = saved[d.id] || {};
+  const row = document.createElement("section");
+  row.className = "row";
+  row.dataset.id = d.id;
+  const opts = d.options.map(([v, label, help, rec]) => `
+    <label class="opt"><input type="${d.type}" name="${d.id}" value="${v}">
+      <span><b>${esc(label)}</b>${rec ? '<span class="tag">suggested</span>' : ''}${help ? `<small>${esc(help)}</small>` : ''}</span>
+    </label>`).join("");
+  row.innerHTML = `
+    <div class="body">
+      <h2>${esc(d.title)}</h2>
+      <p>${esc(d.intro)}</p>
+      ${d.facts.length ? `<ul class="facts">${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <fieldset><legend>${d.type === "radio" ? "Pick one" : "Tick any"}</legend>${opts}</fieldset>
+    </div>
+    <div class="margin">
+      <span>Notes</span>
+      <textarea placeholder="Change it, add a wording, list times or names, anything"></textarea>
+    </div>`;
+  const picked = prev.picked || [];
+  row.querySelectorAll("input").forEach(i => { if (picked.includes(i.value)) i.checked = true; });
+  row.querySelector("textarea").value = prev.note || "";
+  row.addEventListener("change", update);
+  row.querySelector("textarea").addEventListener("input", update);
+  root.appendChild(row);
+});
+
+function collect() {
+  const data = {};
+  document.querySelectorAll(".row").forEach(row => {
+    data[row.dataset.id] = {
+      picked: [...row.querySelectorAll("input:checked")].map(i => i.value),
+      note: row.querySelector("textarea").value
+    };
+    row.querySelectorAll("label.opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  });
+  return data;
+}
+
+function pack(data) {
+  const stamp = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" }) + " CT";
+  const parts = [`Receipt slips worksheet, marks as of ${stamp}`];
+  decisions.forEach(d => {
+    const m = data[d.id] || { picked: [], note: "" };
+    const labels = d.options.filter(o => m.picked.includes(o[0])).map(o => o[1]);
+    let s = `${d.title}\n  ${labels.length ? labels.map(l => "- " + l).join("\n  ") : "(nothing picked)"}`;
+    if (m.note.trim()) s += `\n  Note: ${m.note.trim().replace(/\n/g, "\n        ")}`;
+    parts.push(s);
+  });
+  return parts.join("\n\n");
+}
+
+function update() {
+  const data = collect();
+  localStorage.setItem(KEY, JSON.stringify(data));
+  document.getElementById("summary").value = pack(data);
+  document.getElementById("saved").textContent = "Saved.";
+}
+update();
+document.getElementById("saved").textContent = "";
+
+document.getElementById("copy").onclick = async () => {
+  const text = pack(collect());
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const s = document.getElementById("summary"); s.focus(); s.select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy marks", 1500);
+};
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([pack(collect())], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "receipt-slips-marks.txt";
+  a.click();
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Clear every mark and note on this page?")) return;
+  document.querySelectorAll(".row input").forEach(i => i.checked = false);
+  document.querySelectorAll(".row textarea").forEach(t => t.value = "");
+  update();
+};
+</script>
+</body>
+</html>
