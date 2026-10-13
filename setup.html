@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting Grok Bot set up, worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --soft:#6d6458; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:10px 22px; background:#1c1915; color:#fbf8f2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  header.bar button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:5px 10px; cursor:pointer; }
+  header.bar button:hover { border-color:#fbf8f2; }
+  #saved { color:#b9b0a2; }
+  .sheet { max-width: 1060px; margin: 24px auto 80px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 32px 28px 10px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 12px; max-width: 66ch; }
+  .row { display:grid; grid-template-columns: 1fr 330px; border-bottom: 1px solid var(--rule); }
+  .body { padding: 20px 22px 20px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .body p { margin: 0 0 10px; }
+  .facts { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  .facts li { margin-bottom: 3px; }
+  fieldset { border:none; padding:0; margin: 6px 0 12px; }
+  legend { font: 600 13px/1.3 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin-bottom: 6px; }
+  label.opt { display:grid; grid-template-columns: 22px 1fr; gap: 4px; align-items:start; padding: 7px 8px; margin: 0 0 4px; border:1px solid transparent; cursor:pointer; }
+  label.opt:hover { border-color: var(--rule); }
+  label.opt input { margin-top: 5px; }
+  label.opt.on { background: #efe8da; border-color:#b3a898; }
+  .opt b { font-weight: 600; }
+  .opt small { display:block; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:#4a443c; margin-top:2px; }
+  .tag { font: 600 10px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; background:#1c1915; color:#fbf8f2; padding:3px 5px; margin-left:6px; vertical-align: 2px; }
+  .margin { background: var(--margin); padding: 14px; display:flex; flex-direction:column; gap:6px; }
+  .margin span { font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  textarea { flex:1; min-height: 120px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .out { padding: 20px 36px 30px; }
+  .out h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .out p { font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin: 0 0 8px; }
+  #summary { width:100%; min-height: 220px; background:#fff; border:1px solid var(--rule); padding:10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  .part { padding: 26px 28px 8px 36px; border-bottom: 1px solid var(--rule); background:#f6f1e7; }
+  .part h2 { font-weight:500; font-size:22px; margin:0 0 6px; }
+  .part p { margin:0 0 10px; max-width:70ch; }
+  .part ul { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .body { border-right:none; padding-left:22px; } }
+  @media print { body { background:white; } header.bar { display:none; } .sheet { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span>Setup worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
+  <span>
+    <button id="copy">Copy marks</button>
+    <button id="download">Download marks</button>
+    <button id="clear" title="Clear every mark on this page">Clear</button>
+  </span>
+</header>
+<article class="sheet">
+  <div class="intro">
+    <h1>Getting Grok Bot set up</h1>
+    <p>A few choices about mail, calendars, check-ins, permissions and bots. Facts under each item were checked today. Each item has one option marked suggested; the notes box takes anything else. Nothing changes until your marks are in, and skipping any item is fine.</p>
+  </div>
+  <div id="rows"></div>
+  <section class="out">
+    <h2>Your marks, as text</h2>
+    <p>This updates as you click. If the buttons fail, select all in here and copy.</p>
+    <textarea id="summary" readonly></textarea>
+  </section>
+</article>
+<script>
+const decisions = [
+  { part: "Part A. Mail and calendars",
+    text: "What these are based on, checked today (Oct 13). The three Gmail connections are logan@thathimbo.com, hub@himbo.pro and puplogantx@gmail.com. Superhuman has logan@thathimbo.com only.",
+    facts: [
+      "Mail from logan@loganroth.xxx shows up as Sent inside the logan@thathimbo.com Gmail (REALLY thread, Autoblow thread), so it works as a send-as address there. The Gmail connection itself can only send as logan@thathimbo.com.",
+      "logan@loganroth.xxx is also its own Google Workspace user (calendar events were transferred to it in February). It isn't connected here.",
+      "This bot has no email address of its own yet."
+    ] },
+  {
+    id: "identity",
+    title: "A1. Which address mail goes out from",
+    type: "radio",
+    intro: "Mail sent from the connected Gmail tends to land in spam, and logan@loganroth.xxx tends to do better.",
+    facts: [
+      "Whichever option, nothing is sent without your OK on the specific message."
+    ],
+    options: [
+      ["draft", "Drafts saved in the logan@thathimbo.com Gmail; you switch From to loganroth.xxx and send", "Works today. The From switch is one click in Gmail.", true],
+      ["connect", "Connect logan@loganroth.xxx as its own Gmail connection", "Sends as loganroth.xxx directly. Needs a sign-in to that Workspace account in Settings."],
+      ["botinbox", "Give the bot its own address on mail.grokbot.com", "For things that don't need to look like they're from you, like sign-ups or confirmations. You'd pick the name."],
+      ["thathimbo", "Send from logan@thathimbo.com as is", "Fewest steps; spam risk stays."],
+      ["chat", "Prefer web chat or contact forms when a company has one", "Skips spam filters. You paste the text."]
+    ]
+  },
+  {
+    id: "inboxes",
+    title: "A2. Which inboxes get checked",
+    type: "checkbox",
+    intro: "Reading only. Checks look for anything that fits A3.",
+    facts: [
+      "hub@himbo.pro has 5 sent messages in total; puplogantx@gmail.com has 4, the newest from February."
+    ],
+    options: [
+      ["lr", "logan@thathimbo.com (includes mail to loganroth.xxx)", "This is where REALLY, Temple Sholom and most people mail lands.", true],
+      ["hh", "hub@himbo.pro", "Household and orders (Litter-Robot, etc.)."],
+      ["pl", "puplogantx@gmail.com", "Older personal Gmail, rarely used."],
+      ["sh", "Superhuman's view of logan@thathimbo.com", "Same mail as the first one; only adds Superhuman reminders and splits."]
+    ]
+  },
+  {
+    id: "worth",
+    title: "A3. What's worth bringing to you",
+    type: "checkbox",
+    intro: "Marketing and newsletters never count, whatever is picked here.",
+    facts: [
+      "Today's examples: REALLY's deactivation notice, Temple Sholom's failed $810 payment and their reply, the Orcah Studio developer's reply."
+    ],
+    options: [
+      ["money", "Bills, failed payments, deactivations, account holds", "Anything that costs money or loses something if ignored.", true],
+      ["people", "Replies from people you've written to", ""],
+      ["newpeople", "First-time mail from a real person", ""],
+      ["deadlines", "Anything with a date or deadline in the next few days", ""],
+      ["orders", "Shipping and order problems", "Delays, cancellations, returns. Not routine \"shipped\" mail."]
+    ]
+  },
+  {
+    id: "calendars",
+    title: "A4. Which calendars are looked at",
+    type: "checkbox",
+    intro: "Used for reminders and for avoiding busy times. Reading only.",
+    facts: [
+      "logan@thathimbo.com account: your main calendar, Where in the world is Logan?, Chicago Bar Events, WIN-PAH, Partiful, two transferred calendars, US holidays.",
+      "Second Google calendar connection: Charlie's account (charlie@charlienuttall.com, Pack StormDragon, Himbo Team Comings and Goings, a Coursera feed).",
+      "Third connection: brain@himbo.net, one calendar."
+    ],
+    options: [
+      ["main", "logan@thathimbo.com and Where in the world is Logan?", "", true],
+      ["social", "Chicago Bar Events, WIN-PAH, Partiful", "Event listings; mostly not your plans."],
+      ["himbo", "Himbo Team Comings and Goings", ""],
+      ["charlie", "Charlie's own calendar", ""],
+      ["brain", "brain@himbo.net", ""]
+    ]
+  },
+  { part: "Part B. Check-ins",
+    text: "How often things get looked at and how you hear about them.",
+    facts: [
+      "Two routines exist now: the periodic proactive check (it ran at 11:00 AM CT today) and the webhook that receives Pass worksheet marks.",
+      "The Pass can print a receipt slip, and its awake check pauses printing only on a clear sign you're asleep."
+    ] },
+  {
+    id: "cadence",
+    title: "B1. How often the check runs",
+    type: "radio",
+    intro: "Each check reads mail and calendars and stays quiet if nothing fits A3.",
+    facts: [],
+    options: [
+      ["2h", "Every 2 hours", "", true],
+      ["hourly", "Every hour", ""],
+      ["3x", "Three times a day", "Times can go in the notes."],
+      ["daily", "Once a day", ""]
+    ]
+  },
+  {
+    id: "channel",
+    title: "B2. Where a check reports",
+    type: "checkbox",
+    intro: "Only when something fits A3.",
+    facts: [],
+    options: [
+      ["chat", "A message in this chat", "", true],
+      ["slip", "A line on The Pass's receipt slip", "Paper, printed with the hourly slip or right away for money items."],
+      ["digest", "One summary at the start of your day", "Start of day follows the awake check, not the clock."]
+    ]
+  },
+  {
+    id: "quiet",
+    title: "B3. Quiet times",
+    type: "radio",
+    intro: "Times when checks hold their reports.",
+    facts: [],
+    options: [
+      ["awake", "Hold while the awake check says you're asleep", "Reports wait and arrive together when you're up.", true],
+      ["clock", "Fixed quiet hours", "Hours can go in the notes."],
+      ["none", "No quiet times", ""]
+    ]
+  },
+  { part: "Part C. What can happen without asking",
+    text: "Sending, posting, paying and deleting always need your OK on the specific thing. This part covers the steps before that.",
+    facts: [] },
+  {
+    id: "perms",
+    title: "C1. Standing permissions",
+    type: "checkbox",
+    intro: "Any of these can be taken back by saying so.",
+    facts: [],
+    options: [
+      ["shdraft", "Write reply drafts shown in chat for you to approve", "As now.", true],
+      ["gmaildraft", "Save reply drafts straight into Gmail", "They sit in Drafts until you send or delete them."],
+      ["labels", "Add Gmail labels to sort mail", "No archiving or deleting."],
+      ["cal", "Add calendar holds for dates found in mail", "Marked as tentative holds."],
+      ["deck", "File notes and to-dos into Deck To review", "As The Pass already does."]
+    ]
+  },
+  { part: "Part D. Bots",
+    text: "Your other bots. The list is from earlier conversations; some you meant to delete may still be in the sidebar, and only you can delete a bot (right-click it, Delete).",
+    facts: [] },
+  {
+    id: "roster",
+    title: "D1. Bots to keep",
+    type: "checkbox",
+    intro: "Anything not picked could be merged into this bot or deleted; notes can say which.",
+    facts: [],
+    options: [
+      ["sweep", "Sweep", "Home Assistant cleanup and inventory.", true],
+      ["house", "House", "", true],
+      ["labels", "Labels", "One-off labels on the D450.", true],
+      ["unicorn", "Unicorn", "Galactic Unicorn display."],
+      ["flowe", "Flowe", ""],
+      ["caption", "Caption", "E-ink caption badges."],
+      ["pix", "Pix", ""],
+      ["cut", "Cut", ""],
+      ["egg", "dr eggbot", ""]
+    ]
+  },
+  {
+    id: "retired",
+    title: "D2. Bots you said to delete earlier",
+    type: "radio",
+    intro: "Board, Tracker, Strategy, Chief of Staff, Social Desk, Social, Trends, Scene, Lanes, Press, New Bot, Book. Curtain from today too.",
+    facts: [],
+    options: [
+      ["list", "Get a list of which of these still exist", "Then you delete them from the sidebar.", true],
+      ["keep", "Leave them alone", ""],
+      ["revive", "Some are still wanted", "Names can go in the notes."]
+    ]
+  },
+  { part: "Part E. Memory and extras",
+    text: "Things the bot remembers about you, and other connections.",
+    facts: [] },
+  {
+    id: "memory",
+    title: "E1. Things to correct or add",
+    type: "checkbox",
+    intro: "Pick any that need a look; the notes box is for the correction itself.",
+    facts: [],
+    options: [
+      ["name", "Name, pronouns and how you like to be addressed", "", true],
+      ["people", "Who's who: Josh, Charlie, household and friends", ""],
+      ["addresses", "Which address is for what", "thathimbo, loganroth.xxx, himbo.pro, the Gmail."],
+      ["style", "How messages and worksheets should read", ""],
+      ["other", "Something else", ""]
+    ]
+  },
+  {
+    id: "extras",
+    title: "E2. Other connections",
+    type: "checkbox",
+    intro: "None of these are connected now.",
+    facts: [],
+    options: [
+      ["op", "1Password", "For logins the bot needs, shared from one vault you choose.", true],
+      ["sms", "Texting the bot from your phone", ""],
+      ["nextcloud", "Nextcloud as a source of notes and files", ""],
+      ["none", "None for now", ""]
+    ]
+  }
+];
+
+const KEY = "grokbot-setup-worksheet-v1";
+const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+const root = document.getElementById("rows");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+decisions.forEach(d => {
+  if (d.part) {
+    const p = document.createElement("section");
+    p.className = "part";
+    p.innerHTML = `<h2>${esc(d.part)}</h2><p>${esc(d.text)}</p>${d.facts.length ? `<ul>${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}`;
+    root.appendChild(p);
+    return;
+  }
+  const prev = saved[d.id] || {};
+  const row = document.createElement("section");
+  row.className = "row";
+  row.dataset.id = d.id;
+  const opts = d.options.map(([v, label, help, rec]) => `
+    <label class="opt"><input type="${d.type}" name="${d.id}" value="${v}">
+      <span><b>${esc(label)}</b>${rec ? '<span class="tag">suggested</span>' : ''}${help ? `<small>${esc(help)}</small>` : ''}</span>
+    </label>`).join("");
+  row.innerHTML = `
+    <div class="body">
+      <h2>${esc(d.title)}</h2>
+      <p>${esc(d.intro)}</p>
+      ${d.facts.length ? `<ul class="facts">${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <fieldset><legend>${d.type === "radio" ? "One choice" : "Any that fit"}</legend>${opts}</fieldset>
+    </div>
+    <div class="margin">
+      <span>Notes</span>
+      <textarea placeholder="Change it, add a wording, list times or names, anything"></textarea>
+    </div>`;
+  const picked = prev.picked || [];
+  row.querySelectorAll("input").forEach(i => { if (picked.includes(i.value)) i.checked = true; });
+  row.querySelector("textarea").value = prev.note || "";
+  row.addEventListener("change", update);
+  row.querySelector("textarea").addEventListener("input", update);
+  root.appendChild(row);
+});
+
+function collect() {
+  const data = {};
+  document.querySelectorAll(".row").forEach(row => {
+    data[row.dataset.id] = {
+      picked: [...row.querySelectorAll("input:checked")].map(i => i.value),
+      note: row.querySelector("textarea").value
+    };
+    row.querySelectorAll("label.opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  });
+  return data;
+}
+
+function pack(data) {
+  const stamp = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" }) + " CT";
+  const parts = [`Setup worksheet, marks as of ${stamp}`];
+  decisions.forEach(d => {
+    if (d.part) { parts.push(`== ${d.part} ==`); return; }
+    const m = data[d.id] || { picked: [], note: "" };
+    const labels = d.options.filter(o => m.picked.includes(o[0])).map(o => o[1]);
+    let s = `${d.title}\n  ${labels.length ? labels.map(l => "- " + l).join("\n  ") : "(nothing picked)"}`;
+    if (m.note.trim()) s += `\n  Note: ${m.note.trim().replace(/\n/g, "\n        ")}`;
+    parts.push(s);
+  });
+  return parts.join("\n\n");
+}
+
+function update() {
+  const data = collect();
+  localStorage.setItem(KEY, JSON.stringify(data));
+  document.getElementById("summary").value = pack(data);
+  document.getElementById("saved").textContent = "Saved.";
+}
+update();
+document.getElementById("saved").textContent = "";
+
+document.getElementById("copy").onclick = async () => {
+  const text = pack(collect());
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const s = document.getElementById("summary"); s.focus(); s.select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy marks", 1500);
+};
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([pack(collect())], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "setup-marks.txt";
+  a.click();
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Clear every mark and note on this page?")) return;
+  document.querySelectorAll(".row input").forEach(i => i.checked = false);
+  document.querySelectorAll(".row textarea").forEach(t => t.value = "");
+  update();
+};
+</script>
+</body>
+</html>
