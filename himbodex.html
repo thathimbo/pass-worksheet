@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Himbodex layout, worksheet</title>
+<style>
+  :root { --ink:#1c1915; --rule:#c8bfb0; --margin:#f3efe6; --paper:#fbf8f2; --soft:#6d6458; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e7e1d6; color:var(--ink); font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif; }
+  header.bar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:10px 22px; background:#1c1915; color:#fbf8f2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  header.bar button { font: inherit; background:transparent; color:#fbf8f2; border:1px solid #8a8174; padding:5px 10px; cursor:pointer; }
+  header.bar button:hover { border-color:#fbf8f2; }
+  #saved { color:#b9b0a2; }
+  .sheet { max-width: 1060px; margin: 24px auto 80px; background: var(--paper); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+  .intro { padding: 32px 28px 10px 36px; border-bottom: 1px solid var(--rule); }
+  h1 { font-weight: 500; font-size: 28px; margin: 0 0 8px; }
+  .intro p { margin: 0 0 12px; max-width: 66ch; }
+  .row { display:grid; grid-template-columns: 1fr 330px; border-bottom: 1px solid var(--rule); }
+  .body { padding: 20px 22px 20px 36px; border-right: 1px dashed var(--rule); }
+  .body h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .body p { margin: 0 0 10px; }
+  .facts { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  .facts li { margin-bottom: 3px; }
+  fieldset { border:none; padding:0; margin: 6px 0 12px; }
+  legend { font: 600 13px/1.3 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin-bottom: 6px; }
+  label.opt { display:grid; grid-template-columns: 22px 1fr; gap: 4px; align-items:start; padding: 7px 8px; margin: 0 0 4px; border:1px solid transparent; cursor:pointer; }
+  label.opt:hover { border-color: var(--rule); }
+  label.opt input { margin-top: 5px; }
+  label.opt.on { background: #efe8da; border-color:#b3a898; }
+  .opt b { font-weight: 600; }
+  .opt small { display:block; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:#4a443c; margin-top:2px; }
+  .tag { font: 600 10px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; background:#1c1915; color:#fbf8f2; padding:3px 5px; margin-left:6px; vertical-align: 2px; }
+  .margin { background: var(--margin); padding: 14px; display:flex; flex-direction:column; gap:6px; }
+  .margin span { font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  textarea { flex:1; min-height: 120px; width:100%; resize:vertical; border:none; background: transparent; font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif; color:var(--ink); outline:none; }
+  textarea::placeholder { color:#9a9082; }
+  .out { padding: 20px 36px 30px; }
+  .out h2 { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin:0 0 8px; }
+  .out p { font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color:var(--soft); margin: 0 0 8px; }
+  #summary { width:100%; min-height: 220px; background:#fff; border:1px solid var(--rule); padding:10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  .part { padding: 26px 28px 8px 36px; border-bottom: 1px solid var(--rule); background:#f6f1e7; }
+  .part h2 { font-weight:500; font-size:22px; margin:0 0 6px; }
+  .part p { margin:0 0 10px; max-width:70ch; }
+  .part ul { font: 13px/1.45 ui-sans-serif, system-ui, sans-serif; color:#3f3a33; margin: 4px 0 12px; padding-left: 18px; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .body { border-right:none; padding-left:22px; } }
+  @media print { body { background:white; } header.bar { display:none; } .sheet { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span>Himbodex worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
+  <span>
+    <button id="copy">Copy marks</button>
+    <button id="download">Download marks</button>
+    <button id="clear" title="Clear every mark on this page">Clear</button>
+  </span>
+</header>
+<article class="sheet">
+  <div class="intro">
+    <h1>Himbodex layout</h1>
+    <p>How the new Himbodex ClickUp workspace could be laid out for the audit: structure, fields per area, statuses, views and bot permissions. This is a design sheet only; nothing in ClickUp changes from it. Each item has one option marked suggested; the notes box takes anything else. Nothing changes until your marks are in, and skipping any item is fine.</p>
+  </div>
+  <div id="rows"></div>
+  <section class="out">
+    <h2>Your marks, as text</h2>
+    <p>This updates as you click. If the buttons fail, select all in here and copy.</p>
+    <textarea id="summary" readonly></textarea>
+  </section>
+</article>
+<script>
+const decisions = [
+  { part: "Part A. Shape of the workspace",
+    text: "Himbodex is the one place the audit lives. Six helper bots (Email, Money, People, Commitments, Systems, Accounts) each fill one area. Nothing in ClickUp gets created or changed until your marks are in.",
+    facts: [
+      "Checked tonight: the workspace is Himbodex. It has ClickUp's starter content only: a space called Space, and Team Space with the lists Project 1, Project 2 and Get Started with ClickUp.",
+      "Every piece below can be swapped later, and a ClickUp list exports to CSV, so nothing here locks you in."
+    ] },
+  {
+    id: "structure",
+    title: "A1. How the six areas are laid out",
+    type: "radio",
+    intro: "Spaces are the biggest containers in ClickUp, folders sit inside spaces, and lists hold the actual items.",
+    facts: [],
+    options: [
+      ["folders", "One Audit space, with a folder per area", "Everything for the audit sits under one roof; each folder can hold more than one list later (say, Money: Subscriptions and Money: Bills).", true],
+      ["spaces", "One space per area", "Six top-level spaces in the sidebar. Most separation; each area can have its own statuses and settings."],
+      ["lists", "One Audit space, with one list per area", "Flattest and simplest. Six lists, no folders."],
+      ["onelist", "One single list, with an Area field to tell items apart", "Everything in one place; filter by area when you want one."]
+    ]
+  },
+  {
+    id: "overview",
+    title: "A2. A summary page at the top",
+    type: "radio",
+    intro: "A ClickUp doc pinned at the top that sums up what each bot found: totals, things needing your call, and money that could be saved.",
+    facts: [],
+    options: [
+      ["yes", "Yes, one overview doc", "", true],
+      ["perarea", "Yes, plus a short doc in each area", ""],
+      ["no", "No, the lists are enough", ""],
+      ["later", "Decide after the first findings are in", ""]
+    ]
+  },
+  {
+    id: "starter",
+    title: "A3. ClickUp's starter spaces",
+    type: "radio",
+    intro: "Space, and Team Space with Project 1, Project 2 and Get Started with ClickUp. They hold only ClickUp's sample content.",
+    facts: [],
+    options: [
+      ["delete", "Delete them", "Cleanest start. ClickUp keeps deleted items in its trash for a while.", true],
+      ["archive", "Archive them", "Out of sight, can be brought back."],
+      ["keep", "Keep them as they are", ""],
+      ["reuse", "Rename Team Space and use it for the audit", "Lists inside it would still be removed or archived."]
+    ]
+  },
+  { part: "Part B. What each area tracks",
+    text: "Each item a bot finds becomes one task, and these are its fields (ClickUp custom fields). Pick any that fit; the notes box takes anything missing. Fields can be added or dropped later.",
+    facts: [] },
+  {
+    id: "f_email",
+    title: "B1. Email fields",
+    type: "checkbox",
+    intro: "Inboxes: logan@thathimbo.com, hub@himbo.pro, puplogantx@gmail.com.",
+    facts: [],
+    options: [
+      ["inbox", "Inbox it's in", "", true],
+      ["sender", "Sender (person or company)", ""],
+      ["kind", "Kind: bill, account notice, person, newsletter, order, other", ""],
+      ["date", "Date of the latest message", ""],
+      ["needsreply", "Needs a reply: yes / no", ""],
+      ["link", "Link to the thread", ""],
+      ["action", "What to do: reply, unsubscribe, file, ignore", ""],
+      ["links", "Links to related items in other areas", "For example, a bill email linked to its Money item."]
+    ]
+  },
+  {
+    id: "f_money",
+    title: "B2. Money fields",
+    type: "checkbox",
+    intro: "Subscriptions, bills, and what could be cancelled.",
+    facts: [],
+    options: [
+      ["cost", "Cost", "", true],
+      ["cycle", "Billing cycle: monthly, yearly, one-off", ""],
+      ["renewal", "Next renewal or due date", ""],
+      ["billedto", "Card or account it's billed to", ""],
+      ["email", "Email address the account is under", ""],
+      ["decision", "Keep / cancel / unsure", ""],
+      ["overlaps", "Overlaps with", ""],
+      ["yearly", "Yearly cost (worked out from cost and cycle)", ""],
+      ["howcancel", "How to cancel (link or steps)", ""],
+      ["lastused", "Last used", ""]
+    ]
+  },
+  {
+    id: "f_people",
+    title: "B3. People fields",
+    type: "checkbox",
+    intro: "Who's waiting on you and what you owe them.",
+    facts: [],
+    options: [
+      ["person", "Person", "", true],
+      ["owed", "What's owed (reply, money, item, favor, visit)", ""],
+      ["since", "Waiting since", ""],
+      ["channel", "Channel: email, text, Telegram, in person, other", ""],
+      ["importance", "Importance", ""],
+      ["amount", "Amount, if it's money", ""],
+      ["dex", "Link to their Dex contact", ""],
+      ["direction", "Direction: I owe them / they owe me", ""]
+    ]
+  },
+  {
+    id: "f_commit",
+    title: "B4. Commitments fields",
+    type: "checkbox",
+    intro: "Events and promises you've made.",
+    facts: [],
+    options: [
+      ["when", "Date and time", "", true],
+      ["what", "What it is: event, promise, deadline, appointment", ""],
+      ["who", "Who it's with or for", ""],
+      ["where", "Where", ""],
+      ["source", "Where it came from: calendar, email, message", ""],
+      ["rsvp", "My answer: going / maybe / not going / not answered", ""],
+      ["cost", "Cost or ticket", ""],
+      ["prep", "Anything to do beforehand", ""]
+    ]
+  },
+  {
+    id: "f_systems",
+    title: "B5. Systems fields",
+    type: "checkbox",
+    intro: "Tools, apps and bots, what overlaps, what's unused.",
+    facts: [],
+    options: [
+      ["tool", "Tool or bot name", "", true],
+      ["does", "What it does", ""],
+      ["category", "Category: notes, tasks, mail, home, printing, bots, other", ""],
+      ["overlaps", "Overlaps with", ""],
+      ["lastused", "Last used", ""],
+      ["paid", "Paid or free (linked to its Money item)", ""],
+      ["where", "Where it runs: cloud, Mac, phone, home server", ""],
+      ["decision", "Keep / merge / retire / unsure", ""]
+    ]
+  },
+  {
+    id: "f_accounts",
+    title: "B6. Accounts fields",
+    type: "checkbox",
+    intro: "Every login. No passwords are ever stored in ClickUp, only that the account exists.",
+    facts: [],
+    options: [
+      ["service", "Service", "", true],
+      ["login", "Login email or username", ""],
+      ["signin", "Sign-in method: password, Google, Apple, other", ""],
+      ["twofa", "Two-step login on: yes / no / unknown", ""],
+      ["inop", "In the password manager: yes / no", ""],
+      ["lastused", "Last used", ""],
+      ["paid", "Paid (linked to its Money item)", ""],
+      ["decision", "Keep / close / unsure", ""]
+    ]
+  },
+  { part: "Part C. How items move and how you look at them",
+    text: "Statuses, views, what the bots are allowed to do, and what comes later.",
+    facts: [] },
+  {
+    id: "statuses",
+    title: "C1. Status set",
+    type: "radio",
+    intro: "The steps an item goes through. Same set everywhere unless the notes say otherwise.",
+    facts: [],
+    options: [
+      ["five", "Found / Needs my call / Keep / Cancel / Done", "", true],
+      ["three", "To look at / Decided / Done", "Fewest steps; the keep or cancel goes in a field instead."],
+      ["waiting", "Found / Needs my call / Waiting on someone / Doing / Done", "Fits People and Commitments well."],
+      ["flight", "Inbound / Holding / Cleared / Landed", "Matches the HTC flight-strip style."],
+      ["perarea", "Different sets per area", "The notes can say which."]
+    ]
+  },
+  {
+    id: "views",
+    title: "C2. Views",
+    type: "checkbox",
+    intro: "Ways to look at the same items. Any can be added or removed later.",
+    facts: [],
+    options: [
+      ["list", "List", "Plain rows grouped by status.", true],
+      ["board", "Board", "Columns per status, cards to drag."],
+      ["table", "Table", "Spreadsheet-style, best for sorting money by cost."],
+      ["calendar", "Calendar", "Renewals, due dates and events on a calendar."],
+      ["gantt", "Timeline", ""],
+      ["dash", "Dashboard with totals", "For example, monthly spend and items needing your call."]
+    ]
+  },
+  {
+    id: "botperm",
+    title: "C3. What the bots may do in Himbodex",
+    type: "radio",
+    intro: "Whatever is picked, bots never delete items and never act outside ClickUp (cancelling, paying or replying) without your OK on the specific thing.",
+    facts: [],
+    options: [
+      ["add", "Only add new items", "Statuses and decisions stay yours.", true],
+      ["addupdate", "Add items and fill in or correct fields", "Statuses stay yours."],
+      ["status", "Add items and move statuses up to Needs my call", "Keep, Cancel and Done stay yours."],
+      ["full", "Add items and update any status", ""]
+    ]
+  },
+  {
+    id: "htc",
+    title: "C4. Feeding HTC later",
+    type: "radio",
+    intro: "Whether Himbodex items could later print as flight-strip cards on HTC.",
+    facts: [],
+    options: [
+      ["later", "Later, after the audit", "", true],
+      ["yes", "Yes, plan for it now", "Items needing your call could print as strips."],
+      ["no", "No", ""]
+    ]
+  }
+];
+
+
+const KEY = "himbodex-layout-worksheet-v1";
+const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+const root = document.getElementById("rows");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+decisions.forEach(d => {
+  if (d.part) {
+    const p = document.createElement("section");
+    p.className = "part";
+    p.innerHTML = `<h2>${esc(d.part)}</h2><p>${esc(d.text)}</p>${d.facts.length ? `<ul>${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}`;
+    root.appendChild(p);
+    return;
+  }
+  const prev = saved[d.id] || {};
+  const row = document.createElement("section");
+  row.className = "row";
+  row.dataset.id = d.id;
+  const opts = d.options.map(([v, label, help, rec]) => `
+    <label class="opt"><input type="${d.type}" name="${d.id}" value="${v}">
+      <span><b>${esc(label)}</b>${rec ? '<span class="tag">suggested</span>' : ''}${help ? `<small>${esc(help)}</small>` : ''}</span>
+    </label>`).join("");
+  row.innerHTML = `
+    <div class="body">
+      <h2>${esc(d.title)}</h2>
+      <p>${esc(d.intro)}</p>
+      ${d.facts.length ? `<ul class="facts">${d.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <fieldset><legend>${d.type === "radio" ? "One choice" : "Any that fit"}</legend>${opts}</fieldset>
+    </div>
+    <div class="margin">
+      <span>Notes</span>
+      <textarea placeholder="Change it, add a wording, list times or names, anything"></textarea>
+    </div>`;
+  const picked = prev.picked || [];
+  row.querySelectorAll("input").forEach(i => { if (picked.includes(i.value)) i.checked = true; });
+  row.querySelector("textarea").value = prev.note || "";
+  row.addEventListener("change", update);
+  row.querySelector("textarea").addEventListener("input", update);
+  root.appendChild(row);
+});
+
+function collect() {
+  const data = {};
+  document.querySelectorAll(".row").forEach(row => {
+    data[row.dataset.id] = {
+      picked: [...row.querySelectorAll("input:checked")].map(i => i.value),
+      note: row.querySelector("textarea").value
+    };
+    row.querySelectorAll("label.opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  });
+  return data;
+}
+
+function pack(data) {
+  const stamp = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" }) + " CT";
+  const parts = [`Himbodex worksheet, marks as of ${stamp}`];
+  decisions.forEach(d => {
+    if (d.part) { parts.push(`== ${d.part} ==`); return; }
+    const m = data[d.id] || { picked: [], note: "" };
+    const labels = d.options.filter(o => m.picked.includes(o[0])).map(o => o[1]);
+    let s = `${d.title}\n  ${labels.length ? labels.map(l => "- " + l).join("\n  ") : "(nothing picked)"}`;
+    if (m.note.trim()) s += `\n  Note: ${m.note.trim().replace(/\n/g, "\n        ")}`;
+    parts.push(s);
+  });
+  return parts.join("\n\n");
+}
+
+function update() {
+  const data = collect();
+  localStorage.setItem(KEY, JSON.stringify(data));
+  document.getElementById("summary").value = pack(data);
+  document.getElementById("saved").textContent = "Saved.";
+}
+update();
+document.getElementById("saved").textContent = "";
+
+document.getElementById("copy").onclick = async () => {
+  const text = pack(collect());
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const s = document.getElementById("summary"); s.focus(); s.select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy marks", 1500);
+};
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([pack(collect())], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "himbodex-marks.txt";
+  a.click();
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Clear every mark and note on this page?")) return;
+  document.querySelectorAll(".row input").forEach(i => i.checked = false);
+  document.querySelectorAll(".row textarea").forEach(t => t.value = "");
+  update();
+};
+</script>
+</body>
+</html>
