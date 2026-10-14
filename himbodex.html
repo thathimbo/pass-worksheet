@@ -51,6 +51,8 @@
 <header class="bar">
   <span>Himbodex worksheet. Your marks save in this browser as you click. <span id="saved"></span></span>
   <span>
+    <button id="submit" style="font-weight:700">Submit</button>
+    <span id="submitstatus" role="status" aria-live="polite" style="margin:0 8px;font-weight:700"></span>
     <button id="copy">Copy marks</button>
     <button id="download">Download marks</button>
     <button id="clear" title="Clear every mark on this page">Clear</button>
@@ -376,6 +378,26 @@ document.getElementById("clear").onclick = () => {
   document.querySelectorAll(".row input").forEach(i => i.checked = false);
   document.querySelectorAll(".row textarea").forEach(t => t.value = "");
   update();
+};
+
+// Submit: sends marks to Logan's Home Assistant, which appends them to /media/himbodex_worksheet_marks.jsonl
+const SUBMIT_URL = "https://home.himbo.net/api/webhook/himbodex-CL0sftd0s6hQao0iw6_u_D3RWLGx67b2";
+document.getElementById("submit").onclick = async () => {
+  const btn = document.getElementById("submit"), st = document.getElementById("submitstatus");
+  const data = collect();
+  const body = { worksheet: "himbodex-layout", submission_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    submitted_at: new Date().toISOString(), test: /[?&]test=1/.test(location.search), marks: data, summary: pack(data) };
+  btn.disabled = true; st.style.color = "#3f3a33"; st.textContent = "Sending…";
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
+    const res = await fetch(SUBMIT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+    clearTimeout(t);
+    if (!res.ok) throw new Error("server said " + res.status);
+    localStorage.setItem(KEY + ":lastSubmitted", body.submitted_at);
+    st.style.color = "#1d7a3a"; st.textContent = "Saved ✓ " + new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  } catch (e) {
+    st.style.color = "#b3261e"; st.textContent = "Not saved (" + (e.name === "AbortError" ? "timed out" : e.message) + "). Your marks are still here; try again or use Copy marks.";
+  } finally { btn.disabled = false; }
 };
 </script>
 </body>
